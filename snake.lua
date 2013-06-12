@@ -76,20 +76,6 @@ function methods:draw()
 	love.graphics.circle('fill',x0,y0,snakeradius,16)
 end
 
---[[ no wrap version
-function methods:draw()
-	local x0,y0 = self.x,self.y
-	--local snakeradius=self.snakeRadius
-	local coord 
-	love.graphics.setColor(self.bodyColor)
-	for i=#self,2,-1 do
-		coord=self[i]
-		love.graphics.circle('fill',coord[1]+x0,coord[2]+y0,snakeradius,16)
-	end
-	love.graphics.setColor(self.headColor)
-	love.graphics.circle('fill',x0,y0,snakeradius,16)
-end
---]]
 
 function methods:playerPilot(dt)
 	local newDir=nil
