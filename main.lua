@@ -78,6 +78,7 @@ function score:draw()
 	love.graphics.print(self.string,0,0)
 	love.graphics.setColor(score_future_color)
 	love.graphics.print(self.fstring,100,0)
+	
 end
 
 function love.load()
@@ -92,7 +93,7 @@ function reset()
 	playstate.outDelay=0
 	evmgr:clean()
 	score:reset()
-	snake=Snake(10, math.floor(SH/2),10)
+	snake=Snake(30, math.floor(SH/2),10)
 	for i=1,5 do
 		local f = {
 			x = math.random(SW*0.1,SW*0.9),
@@ -151,20 +152,6 @@ function playstate:update(dt)
 			score:addFuture(math.floor(#snake/10)*5)
 		end
 	end
-	if snake:isOut() then
-		if self.outDelay > 0 then
-			self.outDelay = self.outDelay - dt
-			if self.outDelay <= 0 then
-				state=gameoverstate
-				state:enter()
-				return
-			end
-		else
-			self.outDelay=5
-		end
-	else
-		self.outDelay=0
-	end
 	if snake:selfhit() then
 		state=gameoverstate
 		state:enter()
@@ -174,12 +161,6 @@ end
 function playstate:draw()
 	for _,f in ipairs(fruits) do
 		f:draw()
-	end
-	if self.outDelay >0 then
-		love.graphics.setColor(255,255,255)
-		love.graphics.rectangle("line",199,4,102,17)
-		love.graphics.setColor(255,0,0)
-		love.graphics.rectangle("fill",200,5,self.outDelay*20,15)
 	end
 	snake:draw()
 	score:draw()
@@ -207,7 +188,7 @@ end
 
 function gameoverstate:startDemo()
 	self.showDemo=true
-	snake=Snake(0, math.floor(SH/2),100)
+	snake=Snake(30, math.floor(SH/2),100)
 	snake:setAutoPilot(evmgr)
 end
 
@@ -244,7 +225,9 @@ function pausestate:draw()
 end
 
 function pausestate:keypressed(key)
-	state = playstate
+	if key==" " or key =="return" then
+		state = playstate
+	end
 end
 
 function love.update(dt)

@@ -37,23 +37,59 @@ local default={
 	dir=0,
 	dx=1,
 	dy=0,
+	x=0,
+	y=0,
 }
 
 local snakeradius = 7
 local refdist = 2*7+4
 
 function methods:draw()
+	local x0,y0 = self.x,self.y
+	--local snakeradius=self.snakeRadius
+	local coord,x,y 
+	love.graphics.setColor(self.bodyColor)
+	for i=#self,2,-1 do
+		coord=self[i]
+		x,y = coord[1]+x0,coord[2]+y0
+	if x < 0 then
+		repeat
+			x = x + SW
+		until x >= 0	
+	elseif x>SW then
+		repeat
+			x = x - SW
+		until x <= SW
+	end
+	if y < 0 then
+		repeat
+			y = y + SH
+		until y>=0
+	elseif y>SH then
+		repeat
+			y = y - SH
+		until y<=SH
+	end
+		love.graphics.circle('fill',x,y,snakeradius,16)
+	end
+	love.graphics.setColor(self.headColor)
+	love.graphics.circle('fill',x0,y0,snakeradius,16)
+end
+
+--[[ no wrap version
+function methods:draw()
+	local x0,y0 = self.x,self.y
 	--local snakeradius=self.snakeRadius
 	local coord 
 	love.graphics.setColor(self.bodyColor)
 	for i=#self,2,-1 do
 		coord=self[i]
-		love.graphics.circle('fill',coord[1],coord[2],snakeradius,16)
+		love.graphics.circle('fill',coord[1]+x0,coord[2]+y0,snakeradius,16)
 	end
-	coord=self[1]
 	love.graphics.setColor(self.headColor)
-	love.graphics.circle('fill',coord[1],coord[2],snakeradius,16)
+	love.graphics.circle('fill',x0,y0,snakeradius,16)
 end
+--]]
 
 function methods:playerPilot(dt)
 	local newDir=nil
@@ -92,7 +128,7 @@ function methods:computeWantedDir(evmgr)
 	end
 	self.dir = dir
 
-	local x,y = self[1][1],self[1][2]
+	local x,y = self.x,self.y
 	local wd = math.atan2(math.random(SH*0.1,SH*0.9)-y,math.random(SW*0.1,SW*0.9)-x)
 	local dd = wd-dir
 	if math.abs(dd) > math.abs(dd+2*math.pi) then
@@ -122,28 +158,31 @@ function methods:update(dt)
 		self.dir = newDir
 	end
 
-	--[[
-	self.move = self.move + self.speed * dt
-	if self.move <1 then
-		return
-	end
-	local d = math.min(math.floor(self.move),max_move)
-	self.move = self.move - d
-	--]]
 	local d = self.speed * dt
 	
 	local dx = self.dx * d
 	local dy = self.dy * d
-	local lastx,lasty
-	local is=1
-	local first=true
+
+	local x,y = self.x + dx, self.y + dy
+	if x < 0 then
+		x = x + SW
+	elseif x>SW then
+		x = x - SW
+	end
+	if y < 0 then
+		y = y + SH
+	elseif y>SH then
+		y = y - SH
+	end
+	self.x=x
+	self.y=y
+	
+	local lastx,lasty = 0,0
+	local is=2
 	while is <= #self do
-		local x,y = self[is][1],self[is][2]
-		if first then
-			lastx = x + dx
-			lasty = y + dy
-			first=nil
-		else
+		x,y = self[is][1],self[is][2]
+		x = x - dx
+		y = y - dy
 			--
 			local nd = math.sqrt((x-lastx)*(x-lastx)+(y-lasty)*(y-lasty))
 			if nd > refdist then
@@ -154,7 +193,7 @@ function methods:update(dt)
 			--]]
 			lastx=x
 			lasty=y
-		end
+
 		self[is][1] = lastx
 		self[is][2] = lasty
 		is = is + 1
@@ -163,33 +202,36 @@ end
 
 function methods:cellhitbox(icell) 
 	--local snakeradius = self.snakeRadius
-	local x,y=self[icell][1],self[icell][2]
+	local x,y=self[icell][1] + self.x,self[icell][2] + self.y
 	return {x-snakeradius,y-snakeradius,x+snakeradius,y+snakeradius}
 end
 
 function methods:getDisk(icell)
-	return self[icell][1],self[icell][2],snakeradius
+	return self[icell][1]+self.x,self[icell][2]+self.y,snakeradius
 end
 
 function methods:selfhit()
-	local xh,yh = self[1][1],self[1][2]
-	local hhb = self:cellhitbox(1)
-	local dmin = snakeradius*snakeradius*4
+	local fmod=math.fmod
+	local abs=math.abs
+	local dmin = 4 * snakeradius * snakeradius
+	-- to avoid some collision avoidance
+	local bx = SW-2*snakeradius
+	local by = SH-2*snakeradius
 	for is = 3,#self do
-		if intersect(self:cellhitbox(is),hhb) then
-			local xc,yc = self[is][1],self[is][2]
-			local d = (xh-xc)*(xh-xc) + (yh-yc)*(yh-yc)
-			if d < dmin then
+		local x,y = abs(fmod(self[is][1],SW)),abs(fmod(self[is][2],SH))
+		if x>=bx then
+			x = SW - x
+		end
+		if y>=by then
+			y = SH - y
+		end
+		if x <= snakeradius and y <= snakeradius then 
+			if (x*x+y*y) < dmin then
 				return true
 			end
 		end
 	end
 	return false
-end
-
-function methods:isOut()
-	local x,y = self[1][1],self[1][2]
-	return x<0 or x > SW or y<0 or y>SH
 end
 
 function methods:addRing()
@@ -205,11 +247,13 @@ local function newSnake(x,y,len)
 	for k,v in pairs(default) do
 		s[k]=v
 	end
+	s.x=x
+	s.y=y
 	s.pilot = s.playerPilot
-	local is = 1
+	local is = 2
+	s[1]={0,0}
 	while is <= len do
-		s[is]={x,y}
-		x = x - s.refdist
+		s[is]={-s.refdist,0}
 		is = is + 1
 	end
 
