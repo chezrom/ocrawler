@@ -199,10 +199,11 @@ end
 function methods:selfhit()
 	local fmod=math.fmod
 	local abs=math.abs
-	local dmin = 4 * snakeradius * snakeradius
+	local im=2*snakeradius
+	local dmin = im*im
 	-- to avoid some collision avoidance
-	local bx = SW-2*snakeradius
-	local by = SH-2*snakeradius
+	local bx = SW-2*im
+	local by = SH-2*im
 	for is = 3,#self do
 		local x,y = abs(fmod(self[is][1],SW)),abs(fmod(self[is][2],SH))
 		if x>=bx then
@@ -211,7 +212,7 @@ function methods:selfhit()
 		if y>=by then
 			y = SH - y
 		end
-		if x <= snakeradius and y <= snakeradius then 
+		if x <= im and y <= im then 
 			if (x*x+y*y) < dmin then
 				return true
 			end
