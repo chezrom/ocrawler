@@ -23,24 +23,23 @@ distribution.
 
 Events = require 'events'
 Snake = require 'snake'
+Bonus = require 'bonus'
 
 local score_future_color={255,0,0}
 local score_color={255,255,255}
 local score_font
 
-local fruit_color={196,15,15}
-local fruit_radius=8
-
-
 local snake={}
-local fruits={}
 local score={}
 local evmgr={}
+local bmgr={}
 
 local state=nil
 local playstate={}
 local gameoverstate={}
 local pausestate={}
+local menustate={}
+
 
 function score:reset()
     score_font = love.graphics.newFont(18) 
@@ -56,7 +55,7 @@ function score:addFuture(incr)
 	self.future=v
 end
 
-function score:add(incr,isfut)
+function score:add(incr,isfut,remain)
 	local v = self.value + incr
 	self.string=string.format("%06d",v)
 	self.value=v
@@ -69,6 +68,9 @@ function score:add(incr,isfut)
 			self.fstring=""
 		end
 		self.future=v
+		if remain and remain > 0 then
+			evmgr:addEvent(1,score,score.add,incr,true,remain-1)
+		end
 	end
 end
 
@@ -78,7 +80,6 @@ function score:draw()
 	love.graphics.print(self.string,0,0)
 	love.graphics.setColor(score_future_color)
 	love.graphics.print(self.fstring,100,0)
-	
 end
 
 function love.load()
@@ -90,44 +91,10 @@ end
 
 function reset()
 	state=playstate
-	playstate.outDelay=0
 	evmgr:clean()
 	score:reset()
+	bmgr=Bonus(evmgr,10)
 	snake=Snake(30, math.floor(SH/2),10)
-	for i=1,5 do
-		local f = {
-			x = math.random(SW*0.1,SW*0.9),
-			y = math.random(SH*0.1,SH*0.9),
-			draw = fdraw,
-			update = fupdate,
-			hit = fhit
-		}
-		fruits[i]=f
-	end
-end
-
-function fdraw(self)
-	love.graphics.setColor(fruit_color)
-	love.graphics.circle('fill',self.x,self.y,fruit_radius,32)
-end
-
-function fupdate(self,dt)
-
-end
-
-function fhit(self,hb)
-	local x,y=self.x,self.y
-	if intersect(
-		{x-fruit_radius,y-fruit_radius,x+fruit_radius,y+fruit_radius},
-		hb) then
-		
-		local hx,hy,hr = snake:getDisk(1)	
-		local d = (x-hx)*(x-hx)+(y-hy)*(y-hy)
-		if d < (hr+fruit_radius)*(hr+fruit_radius) then
-			return true
-		end
-	end
-	return false
 end
 
 
@@ -138,17 +105,12 @@ end
 function playstate:update(dt)
 	evmgr:update(dt)
 	snake:update(dt)
-	local hhb = snake:cellhitbox(1)
-	for _,f in ipairs(fruits) do
-		if f:hit(hhb) then
-			snake:addRing()
-			f.x = math.random(SW*0.1,SW*0.9)
-			f.y = math.random(SH*0.1,SH*0.9)
-			
+	local events = bmgr:genEvents(snake:getDisk(1))
+	for _,e in ipairs(events) do
+		if e == "FRUIT" then
 			score:add(50)
-			for i=1,5 do
-				evmgr:addEvent(5+i,score,score.add,math.floor(#snake/10),true)
-			end
+			snake:addRing()
+			evmgr:addEvent(5,score,score.add,math.floor(#snake/10),true,4)
 			score:addFuture(math.floor(#snake/10)*5)
 		end
 	end
@@ -159,9 +121,7 @@ function playstate:update(dt)
 end
 
 function playstate:draw()
-	for _,f in ipairs(fruits) do
-		f:draw()
-	end
+	bmgr:draw()
 	snake:draw()
 	score:draw()
 end
@@ -170,6 +130,26 @@ function playstate:keypressed(key)
 	if key == "p" then
 		state = pausestate
 	end
+end
+
+function menustate:init()
+
+end
+
+function menustate:enter()
+
+end
+
+function menustate:update(dt)
+
+end
+
+function menustate:draw()
+
+end
+
+function menustate:keypressed(key)
+
 end
 
 function gameoverstate:init()
@@ -236,8 +216,8 @@ end
 
 function love.draw()
 	state:draw(dt)
+	--love.graphics.print("Current FPS: "..tostring(love.timer.getFPS( )), 10, 500)
 end
-
 --
 function love.keypressed(key)
 	state:keypressed(key)

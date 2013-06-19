@@ -21,12 +21,6 @@ misrepresented as being the original software.
 distribution.
 --]]
  
-local next_event_id = 1
-
-local evt_metatable = {
-	__lt = function (a,b) return a.time < b.time end,
-	__le = function (a,b) return a.time <= b.time end,
-}
 local function up(heap,j)
 	while true do
 		local i = math.floor(j/2) -- parent node
@@ -80,6 +74,24 @@ local function pop(heap)
 end
 
 
+local next_event_id = 1
+
+local evt_metatable = {
+	__lt = function (a,b) return a.time < b.time end,
+	__le = function (a,b) return a.time <= b.time end,
+	__call= function(evt)
+		local obj = evt.object
+		if obj then
+			if obj.events and obj.events[evt.event_id] then
+				obj.events[evt.event_id]=nil
+				evt.func(obj,unpack(evt.args))
+			end
+		else
+			evt.func(unpack(evt.args))
+		end
+	end
+}
+
 local methods={}
 
 function methods:addEvent(delay,obj,func,...)
@@ -106,7 +118,7 @@ function methods:update(dt)
 	local heap = self.heap
 	while #heap > 0 and heap[1].time < ctime do
 		local evt = pop(heap)
-		evt.func(evt.object,unpack(evt.args))
+		evt(evt.object,unpack(evt.args))
 	end
 	self.time = ctime
 	
