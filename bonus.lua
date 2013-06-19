@@ -40,7 +40,7 @@ function fmethods:genEvent(evmgr,hb,x,y,r)
 			if d < (r+fr)*(r+fr) then
 				-- intersect !!
 				self:invalid(evmgr)
-				return "FRUIT"
+				return {"FRUIT",self.mature}
 			end
 		end
 
@@ -54,11 +54,13 @@ function fmethods:show(evmgr)
 	self.y=y
 	self.r=r
 	self.valid=true
+	self.mature=false
 	evmgr:addEvent(math.random(5,8),self,self.prehide,evmgr)
 end
 
 function fmethods:prehide(evmgr)
 	self.color=fruit_color_prehide
+	self.mature=true
 	evmgr:addEvent(2,self,self.invalid,evmgr)
 end
 

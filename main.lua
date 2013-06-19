@@ -111,8 +111,12 @@ function playstate:update(dt)
 	snake:update(dt)
 	local events = bmgr:genEvents(snake:getDisk(1))
 	for _,e in ipairs(events) do
-		if e == "FRUIT" then
-			score:add(50)
+		if e[1] == "FRUIT" then
+			if e[2] then
+				score:add(100)
+			else
+				score:add(50)
+			end
 			snake:addRing()
 			evmgr:addEvent(5,score,score.add,math.floor(#snake/10),true,4)
 			score:addFuture(math.floor(#snake/10)*5)
