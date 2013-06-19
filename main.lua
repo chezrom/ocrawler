@@ -24,7 +24,7 @@ distribution.
 Events = require 'events'
 Snake = require 'snake'
 Bonus = require 'bonus'
-
+Highscore = require 'highscore'
 local score_future_color={255,0,0}
 local score_color={255,255,255}
 local score_font
@@ -85,8 +85,12 @@ end
 function love.load()
 	SW,SH = love.graphics.getWidth(), love.graphics.getHeight()
 	gameoverstate:init()
+	menustate:init()
+	Highscore.init()
     evmgr=Events()		
-	reset()
+	--reset()
+	state=menustate
+	state:enter()
 end
 
 function reset()
@@ -134,22 +138,73 @@ end
 
 function menustate:init()
 
+	self.titreBgColor = {0,0,196,128}
+	self.titreFgColor= {255,255,255}
+	self.titreFont = love.graphics.newFont(32) 
+	self.titre = "OPHIDIAN CRAWLER"
+	local titreHeight = math.floor(self.titreFont:getHeight()*1.5)
+	self.titreY = 20 + math.floor(self.titreFont:getHeight()*0.25)
+	self.titreRectangle = {0,20,SW,titreHeight}
+
+	self.message="PRESS ANY KEY TO PLAY"
+	self.font=love.graphics.newFont(20)
+	self.messageY = SH - 1.5*self.font:getHeight()
+	
+	self.demoSnakes={}
+	for i=1,5 do
+		self.demoSnakes[i]=Snake(30, math.random(1,SH),30)
+	end
+	self.selectSnake = Snake(30, math.floor(SH/2),10)
+	self.selectSnake.bodyColor={196,196,196}
+	self.selectSnake.headColor={196,20,20}
 end
 
 function menustate:enter()
+	self.showMessage=true
+	evmgr:clean()
+	evmgr:addEvent(0.5,self,self.flipMessage)
+	for _,s in ipairs(self.demoSnakes) do
+		s:setAutoPilot(evmgr)
+		s.speed = math.random(200,300)
+	end
+end
 
+function menustate:flipMessage()
+	self.showMessage = not self.showMessage
+	evmgr:addEvent(0.5,self,self.flipMessage)
 end
 
 function menustate:update(dt)
-
+	evmgr:update(dt)
+	for _,s in ipairs(self.demoSnakes) do
+		s:update(dt)
+	end
+	--self.selectSnake:update(dt)
+	
+	
 end
 
 function menustate:draw()
+	for _,s in ipairs(self.demoSnakes) do
+		s:draw()
+	end
+	--self.selectSnake:draw()
+	love.graphics.setColor(self.titreBgColor)
+	love.graphics.rectangle('fill',unpack(self.titreRectangle))
+	love.graphics.setColor(self.titreFgColor)
+	love.graphics.setFont(self.titreFont)
+	love.graphics.printf(self.titre,0,self.titreY,SW,"center")
 
+	if self.showMessage then
+		love.graphics.setColor({255,255,255})
+		love.graphics.setFont(self.font)
+		love.graphics.printf(self.message,0,self.messageY,SW,"center")
+	end
+	
 end
 
 function menustate:keypressed(key)
-
+	reset()
 end
 
 function gameoverstate:init()
@@ -161,15 +216,13 @@ end
 function gameoverstate:enter()
 	evmgr:clean()
 	self.showMessage=true
-	self.showDemo=false
 	evmgr:addEvent(0.5,self,self.flipMessage)
 	evmgr:addEvent(3,self,self.startDemo)
 end
 
 function gameoverstate:startDemo()
-	self.showDemo=true
-	snake=Snake(30, math.floor(SH/2),100)
-	snake:setAutoPilot(evmgr)
+	state = menustate
+	state:enter()
 end
 
 function gameoverstate:flipMessage()
@@ -179,9 +232,6 @@ end
 
 function gameoverstate:update(dt)
 	evmgr:update(dt)
-	if self.showDemo then
-		snake:update(dt)
-	end
 end
 
 function gameoverstate:draw()
