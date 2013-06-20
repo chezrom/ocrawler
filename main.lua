@@ -268,7 +268,11 @@ function gameoverstate:enter()
 	local hasHS = Highscore.setLastScore(score.value)
 	
 	if hasHS then
-		Highscore.recordHighScore(score.value,"PLAYER")
+		local pname = Highscore.getPlayerName()
+		if pname == "" then
+			pname="PLAYER"
+		end
+		Highscore.recordHighScore(score.value,pname)
 	end
 end
 
@@ -318,7 +322,6 @@ end
 
 function love.draw()
 	state:draw(dt)
-	--love.graphics.print("Current FPS: "..tostring(love.timer.getFPS( )), 10, 500)
 end
 --
 function love.keypressed(key)

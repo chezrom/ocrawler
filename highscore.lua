@@ -25,6 +25,7 @@ local filename="hiscore.lst"
 local hs={}
 local scores={}
 local lastScore=0
+local playerName=""
 
 local function sort()
 	table.sort(scores,function (a,b) return a.score > b.score end)
@@ -37,6 +38,9 @@ local function write()
 	for _,sp in ipairs(scores) do
 		f:write(sp.name .. "=" .. sp.score.."\r\n")
 	end
+	if playerName then
+		f:write(playerName.."=00000\r\n")
+	end	
 	f:close()
 end
 
@@ -46,8 +50,12 @@ function hs.init()
 		local i=1
 		for line in love.filesystem.lines(filename) do
 			n,s = line:match("(%w+)=(%d+)")
-			scores[i] = {score=tonumber(s),name=n}
-			i=i+1
+			if s == "00000" then
+				playerName=n
+			else
+				scores[i] = {score=tonumber(s),name=n}
+				i=i+1
+			end
 		end
 	else
 		for i = 1,5 do
@@ -73,6 +81,7 @@ end
 function hs.recordHighScore(score,name)
 	sort()
 	if score > scores[#scores].score then
+		playerName=name
 		scores[#scores] = {score=score,name=name,last=true}
 		write()
 	end	
@@ -84,6 +93,10 @@ end
 
 function hs.getHighScores()
 	return scores
+end
+
+function hs.getPlayerName()
+	return playerName
 end
 
 return hs
