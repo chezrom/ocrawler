@@ -39,7 +39,7 @@ local state=nil
 local playstate={}
 local gameoverstate={}
 local pausestate={}
-local menustate={}
+local hiscorestate={}
 
 
 function score:reset()
@@ -87,10 +87,10 @@ function love.load()
 	SW,SH = love.graphics.getWidth(), love.graphics.getHeight()
 	Highscore.init()
 	gameoverstate:init()
-	menustate:init()
+	hiscorestate:init()
     evmgr=Events()		
 	--reset()
-	state=menustate
+	state=hiscorestate
 	state:enter()
 end
 
@@ -141,7 +141,7 @@ function playstate:keypressed(key)
 	end
 end
 
-function menustate:init()
+function hiscorestate:init()
 	
 	local titreOffset = 20
 
@@ -185,7 +185,7 @@ function menustate:init()
 	self.scoreSelectColor = {255,255,0}
 end
 
-function menustate:enter()
+function hiscorestate:enter()
 	self.showMessage=true
 	evmgr:clean()
 	evmgr:addEvent(0.5,self,self.flipMessage)
@@ -195,12 +195,12 @@ function menustate:enter()
 	end
 end
 
-function menustate:flipMessage()
+function hiscorestate:flipMessage()
 	self.showMessage = not self.showMessage
 	evmgr:addEvent(0.5,self,self.flipMessage)
 end
 
-function menustate:update(dt)
+function hiscorestate:update(dt)
 	evmgr:update(dt)
 	for _,s in ipairs(self.demoSnakes) do
 		s:update(dt)
@@ -210,7 +210,7 @@ function menustate:update(dt)
 	
 end
 
-function menustate:draw()
+function hiscorestate:draw()
 	for _,s in ipairs(self.demoSnakes) do
 		s:draw()
 	end
@@ -249,7 +249,7 @@ function menustate:draw()
 end
 
 
-function menustate:keypressed(key)
+function hiscorestate:keypressed(key)
 	reset()
 end
 
@@ -277,7 +277,7 @@ function gameoverstate:enter()
 end
 
 function gameoverstate:startDemo()
-	state = menustate
+	state = hiscorestate
 	state:enter()
 end
 
