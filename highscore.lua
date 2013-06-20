@@ -51,9 +51,9 @@ function hs.init()
 		for line in love.filesystem.lines(filename) do
 			n,s = line:match("(%w+)=(%d+)")
 			if s == "00000" then
-				playerName=n
+				playerName=string.upper(n)
 			else
-				scores[i] = {score=tonumber(s),name=n}
+				scores[i] = {score=tonumber(s),name=string.upper(n)}
 				i=i+1
 			end
 		end
@@ -79,6 +79,7 @@ function hs.setLastScore(score)
 end
 
 function hs.recordHighScore(score,name)
+	name=string.upper(name)
 	sort()
 	if score > scores[#scores].score then
 		playerName=name

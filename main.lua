@@ -254,25 +254,36 @@ function hiscorestate:keypressed(key)
 end
 
 function gameoverstate:init()
+
+	self.message="PRESS ANY KEY TO PLAY"
+	self.font=love.graphics.newFont(20)
+	self.messageY = SH - 1.5*self.font:getHeight()
+
+	self.bigFont = love.graphics.newFont(32)
+
+	self.y = (SH-self.font:getHeight())/2
+		
+	--[[
 	self.font =  love.graphics.newFont(32) 
 	self.message = "GAME OVER - PRESS ANY KEY TO PLAY"
-	self.y = (SH-self.font:getHeight())/2
+	--]]
 end
 
 function gameoverstate:enter()
 	evmgr:clean()
 	self.showMessage=true
-	evmgr:addEvent(0.5,self,self.flipMessage)
-	evmgr:addEvent(3,self,self.startDemo)
 	
+	self.text="GAME OVER\nFINAL SCORE : "..score.value.."\n\n"
 	local hasHS = Highscore.setLastScore(score.value)
-	
+	self.enterName=false
 	if hasHS then
-		local pname = Highscore.getPlayerName()
-		if pname == "" then
-			pname="PLAYER"
-		end
-		Highscore.recordHighScore(score.value,pname)
+		self.text = self.text .. "HIGH SCORE - PLEASE ENTER NAME"
+		self.enterName=true
+		self.name = Highscore.getPlayerName()
+	else
+		evmgr:addEvent(0.5,self,self.flipMessage)
+		evmgr:addEvent(3,self,self.startDemo)
+		self.text = self.text .. "NO HIGH SCORE - TRY AGAIN"
 	end
 end
 
@@ -292,15 +303,40 @@ end
 
 function gameoverstate:draw()
 	playstate:draw()
-	if self.showMessage then
-		love.graphics.setColor({255,255,255})
+	love.graphics.setColor({255,255,255})
+	love.graphics.setFont(self.bigFont)
+	love.graphics.printf(self.text,0,100,SW,"center")
+	if self.enterName then
+		love.graphics.setColor({0,0,196,128})
+		local fh = self.bigFont:getHeight()
+		local fw = self.bigFont:getWidth(self.name.."_")+30
+		love.graphics.rectangle('fill',(SW-fw)/2,self.y-fh*0.25,fw,fh*1.5)
+		love.graphics.setColor({255,0,0})
+		love.graphics.printf(self.name.."_",0,self.y,SW,"center")
+	elseif self.showMessage then
 		love.graphics.setFont(self.font)
-		love.graphics.printf(self.message,0,self.y,SW,"center")
+		love.graphics.printf(self.message,0,self.messageY,SW,"center")
 	end
 end
 
 function gameoverstate:keypressed(key)
-	reset()
+	if self.enterName then
+		if key == "backspace" then
+			if #self.name > 0 then
+				self.name=string.sub(self.name,1,-2)
+			end
+		elseif key == "return" then
+			Highscore.recordHighScore(score.value,self.name)
+			state=hiscorestate
+			state:enter()
+		elseif (key>="a" and key<="z" ) or (key>="0" and key <="9") then
+			if #self.name < 8 then
+				self.name = self.name .. string.upper(key)
+			end
+		end
+	else
+		reset()
+	end
 end
 
 function pausestate:update(dt)
