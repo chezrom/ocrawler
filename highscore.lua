@@ -23,9 +23,67 @@ distribution.
 
 local filename="hiscore.lst"
 local hs={}
+local scores={}
+local lastScore=0
 
-function hs.init() 
-	
+local function sort()
+	table.sort(scores,function (a,b) return a.score > b.score end)
+end
+
+local function write()
+	sort()
+	local f = love.filesystem.newFile(filename)
+	f:open('w')
+	for _,sp in ipairs(scores) do
+		f:write(sp.name .. "=" .. sp.score.."\r\n")
+	end
+	f:close()
+end
+
+function hs.init()
+	scores={}
+	if love.filesystem.exists(filename) then
+		local i=1
+		for line in love.filesystem.lines(filename) do
+			n,s = line:match("(%w+)=(%d+)")
+			scores[i] = {score=tonumber(s),name=n}
+			i=i+1
+		end
+	else
+		for i = 1,5 do
+			scores[i]={score=1000,name="NOBODY"}
+		end
+	end
+	sort()
+end
+
+function hs.setLastScore(score)
+	sort()
+	for _,sc in ipairs(scores) do
+		sc.last=nil
+	end
+	lastScore=score
+	if score > scores[#scores].score then
+		return true
+	else
+		return false
+	end
+end
+
+function hs.recordHighScore(score,name)
+	sort()
+	if score > scores[#scores].score then
+		scores[#scores] = {score=score,name=name,last=true}
+		write()
+	end	
+end
+
+function hs.getLastScore()
+	return lastScore
+end
+
+function hs.getHighScores()
+	return scores
 end
 
 return hs

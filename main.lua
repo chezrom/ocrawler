@@ -25,6 +25,7 @@ Events = require 'events'
 Snake = require 'snake'
 Bonus = require 'bonus'
 Highscore = require 'highscore'
+
 local score_future_color={255,0,0}
 local score_color={255,255,255}
 local score_font
@@ -84,9 +85,9 @@ end
 
 function love.load()
 	SW,SH = love.graphics.getWidth(), love.graphics.getHeight()
+	Highscore.init()
 	gameoverstate:init()
 	menustate:init()
-	Highscore.init()
     evmgr=Events()		
 	--reset()
 	state=menustate
@@ -141,14 +142,16 @@ function playstate:keypressed(key)
 end
 
 function menustate:init()
+	
+	local titreOffset = 20
 
 	self.titreBgColor = {0,0,196,128}
 	self.titreFgColor= {255,255,255}
 	self.titreFont = love.graphics.newFont(32) 
 	self.titre = "OPHIDIAN CRAWLER"
 	local titreHeight = math.floor(self.titreFont:getHeight()*1.5)
-	self.titreY = 20 + math.floor(self.titreFont:getHeight()*0.25)
-	self.titreRectangle = {0,20,SW,titreHeight}
+	self.titreY = titreOffset + math.floor(self.titreFont:getHeight()*0.25)
+	self.titreRectangle = {0,titreOffset,SW,titreHeight}
 
 	self.message="PRESS ANY KEY TO PLAY"
 	self.font=love.graphics.newFont(20)
@@ -161,6 +164,25 @@ function menustate:init()
 	self.selectSnake = Snake(30, math.floor(SH/2),10)
 	self.selectSnake.bodyColor={196,196,196}
 	self.selectSnake.headColor={196,20,20}
+	
+	self.scoreFont = love.graphics.newFont(24)
+	local s = Highscore.getHighScores()
+	self.scoreY={}
+	local sh = (#s + 2)*1.2*self.scoreFont:getHeight()
+	self.scoreY[1] = (SH - titreHeight - titreOffset - sh) / 2 + titreHeight + titreOffset
+	for i= 2 , #s do
+		self.scoreY[i] = self.scoreY[i-1] + 1.2 * self.scoreFont:getHeight()
+	end
+	self.scoreY[#s+1] = self.scoreY[#s] + 2.4 * self.scoreFont:getHeight()
+
+	self.scoreW = self.scoreFont:getWidth("99. MMMMMMMMMM 999999")
+	self.scoreX={}
+	self.scoreX[1] = (SW - self.scoreW)/2
+	self.scoreX[2] = self.scoreX[1] + self.scoreFont:getWidth("99. ")
+	self.scoreX[3] = self.scoreX[1] + self.scoreFont:getWidth("99. MMMMMMMMMM ")
+	self.scoreLastW = self.scoreX[1]+self.scoreW-self.scoreX[3]
+	self.scoreColor = {255,255,255}
+	self.scoreSelectColor = {255,255,0}
 end
 
 function menustate:enter()
@@ -192,6 +214,7 @@ function menustate:draw()
 	for _,s in ipairs(self.demoSnakes) do
 		s:draw()
 	end
+	
 	--self.selectSnake:draw()
 	love.graphics.setColor(self.titreBgColor)
 	love.graphics.rectangle('fill',unpack(self.titreRectangle))
@@ -205,7 +228,26 @@ function menustate:draw()
 		love.graphics.printf(self.message,0,self.messageY,SW,"center")
 	end
 	
+	-- display high scores
+	local s = Highscore.getHighScores()
+	love.graphics.setFont(self.scoreFont)
+	for i,sc in ipairs(s) do
+		if sc.last then
+			love.graphics.setColor(self.scoreSelectColor)
+		else
+			love.graphics.setColor(self.scoreColor)
+		end
+		love.graphics.print(i,self.scoreX[1],self.scoreY[i])
+		love.graphics.print(sc.name,self.scoreX[2],self.scoreY[i])
+		love.graphics.printf(sc.score,self.scoreX[3],self.scoreY[i],self.scoreLastW,"right")
+	end
+	
+	love.graphics.setColor(self.scoreSelectColor)
+	love.graphics.print("LAST SCORE",self.scoreX[1],self.scoreY[#s+1])
+	love.graphics.printf(Highscore.getLastScore(),self.scoreX[3],self.scoreY[#s+1],self.scoreLastW,"right")
+	
 end
+
 
 function menustate:keypressed(key)
 	reset()
@@ -222,6 +264,12 @@ function gameoverstate:enter()
 	self.showMessage=true
 	evmgr:addEvent(0.5,self,self.flipMessage)
 	evmgr:addEvent(3,self,self.startDemo)
+	
+	local hasHS = Highscore.setLastScore(score.value)
+	
+	if hasHS then
+		Highscore.recordHighScore(score.value,"PLAYER")
+	end
 end
 
 function gameoverstate:startDemo()
