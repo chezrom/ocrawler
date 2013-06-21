@@ -319,7 +319,7 @@ function gameoverstate:draw()
 	end
 end
 
-function gameoverstate:keypressed(key)
+function gameoverstate:keypressed(key,unicode)
 	if self.enterName then
 		if key == "backspace" then
 			if #self.name > 0 then
@@ -329,9 +329,12 @@ function gameoverstate:keypressed(key)
 			Highscore.recordHighScore(score.value,self.name)
 			state=hiscorestate
 			state:enter()
-		elseif (key>="a" and key<="z" ) or (key>="0" and key <="9") then
-			if #self.name < 8 then
-				self.name = self.name .. string.upper(key)
+		elseif unicode > 31 and unicode < 127 then
+			local ch = string.upper(string.char(unicode))
+		    if (ch>="A" and ch<="Z" ) or (ch>="0" and ch <="9") then
+				if #self.name < 8 then
+					self.name = self.name .. ch
+				end
 			end
 		end
 	else
@@ -360,7 +363,7 @@ function love.draw()
 	state:draw(dt)
 end
 --
-function love.keypressed(key)
-	state:keypressed(key)
+function love.keypressed(key,unicode)
+	state:keypressed(key,unicode)
 end
 --]]
