@@ -25,12 +25,22 @@ local methods={}
 
 local max_move=10
 
+local waitkeycount=5
+local snakeradius = 7
+local refdist = 2*7+4
+
+local active_bodyColor={50,196,50}
+local active_headColor={196,196,50}
+
+local sleep_bodyColor={50,196,50,128}
+local sleep_headColor={196,196,50,128}
+
 local default={
 	speed=250,
 	--angspeed = math.pi, 
 	angspeed = 5/4*math.pi, 
-	bodyColor={50,196,50},
-	headColor={196,196,50},
+	bodyColor=active_bodyColor,
+	headColor=active_headColor,
 	snakeRadius=7,
     refdist=2*7 + 2,
 	move=0,
@@ -39,10 +49,18 @@ local default={
 	dy=0,
 	x=0,
 	y=0,
+	waitcount=waitkeycount,
 }
 
-local snakeradius = 7
-local refdist = 2*7+4
+function methods:sleep()
+	self.bodyColor=sleep_bodyColor
+	self.headColor=sleep_headColor
+end
+
+function methods:wakeup()
+	self.bodyColor=active_bodyColor
+	self.headColor=active_headColor
+end
 
 function methods:draw()
 	local x0,y0 = self.x,self.y
@@ -79,9 +97,12 @@ end
 
 function methods:playerPilot(dt)
 	local newDir=nil
+	self.waitcount = self.waitcount - dt
 	if love.keyboard.isDown("left") then
+		self.waitcount = waitkeycount
 		newDir = self.dir - self.angspeed * dt
 	elseif love.keyboard.isDown("right") then
+		self.waitcount = waitkeycount
 		newDir = self.dir + self.angspeed * dt
 	end
 	return newDir

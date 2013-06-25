@@ -21,14 +21,16 @@ misrepresented as being the original software.
 distribution.
 --]]
 
-Events = require 'events'
-Snake = require 'snake'
-Bonus = require 'bonus'
-Highscore = require 'highscore'
+local lg = love.graphics
+
+local Events = require 'events'
+local Snake = require 'snake'
+local Bonus = require 'bonus'
+local Highscore = require 'highscore'
+local rsc = require 'resources'
 
 local score_future_color={255,0,0}
 local score_color={255,255,255}
-local score_font
 
 local snake={}
 local score={}
@@ -41,13 +43,71 @@ local gameoverstate={}
 local pausestate={}
 local hiscorestate={}
 
+local fminute_fmttime = "FIRST MINUTE : %02d s"
+local fminute_fmtscore = "FIRST MINUTE : %5d"
 
 function score:reset()
-    score_font = love.graphics.newFont(18) 
 	self.events={}
 	self.value=0
 	self.future=0
 	self:add(0,true)
+
+	self.length=10
+	--
+	self.mtime=60
+	self.mdisplay=string.format(fminute_fmttime,self.mtime)
+	self.mhscore=false
+	self.mscore=0
+	
+	self.hscores={}
+	
+	evmgr:addEvent(1,score,score.secondTick)
+	
+end
+
+function score:grow(incr)
+	self.length = self.length+incr
+	evmgr:addEvent(5,self,self.add,math.floor(self.length/10),true,4)
+	self:addFuture(math.floor(self.length/10)*5)
+end
+
+function score:setFirstMinuteScore() 
+	self.mscore = self.value
+	self.mdisplay = string.format(fminute_fmtscore,self.mscore)
+	self.mhscore = Highscore.setLastScore('firstminute',self.value)
+	if self.mhscore then
+		self.mdisplay = self.mdisplay .. " (HS)"
+	end
+end
+
+function score:setLastScore()
+	self.hscores={}
+	if self.mtime > 0 then
+		self:setFirstMinuteScore()
+	end
+	if self.mhscore then
+		table.insert(self.hscores,{listname='firstminute',score=self.mscore})
+	end
+	if Highscore.setLastScore('freegame',self.value) then
+		table.insert(self.hscores,{listname='freegame',score=self.value})
+	end
+	return #self.hscores>0
+end
+
+function score:recordHighScore(name)
+	for _,hsr in ipairs(self.hscores) do
+		Highscore.recordHighScore(hsr.listname,hsr.score,name)
+	end
+end
+
+function score:secondTick()
+	self.mtime = self.mtime - 1
+	if self.mtime > 0 then
+		self.mdisplay=string.format(fminute_fmttime,self.mtime)
+		evmgr:addEvent(1,score,score.secondTick)
+	else
+		self:setFirstMinuteScore()
+	end
 end
 
 function score:addFuture(incr)
@@ -76,26 +136,34 @@ function score:add(incr,isfut,remain)
 end
 
 function score:draw()
-	love.graphics.setFont(score_font)
-	love.graphics.setColor(score_color)
-	love.graphics.print(self.string,0,0)
-	love.graphics.setColor(score_future_color)
-	love.graphics.print(self.fstring,100,0)
+	lg.setFont(rsc.font)
+	lg.setColor(score_color)
+	lg.print(self.string,0,0)
+
+	lg.print(#snake,0,30)
+
+	lg.setColor(score_future_color)
+	lg.print(self.fstring,100,0)
+	lg.setColor({196,196,196})
+	lg.print(self.mdisplay,500,0)
 end
 
 function love.load()
-	SW,SH = love.graphics.getWidth(), love.graphics.getHeight()
+	SW,SH = lg.getWidth(), lg.getHeight()
+	rsc.load()
 	Highscore.init()
 	gameoverstate:init()
 	hiscorestate:init()
     evmgr=Events()		
-	--reset()
 	state=hiscorestate
 	state:enter()
 end
 
 function reset()
 	state=playstate
+	playstate.sleep=false
+	
+	
 	evmgr:clean()
 	score:reset()
 	bmgr=Bonus(evmgr,10)
@@ -110,17 +178,24 @@ end
 function playstate:update(dt)
 	evmgr:update(dt)
 	snake:update(dt)
-	local events = bmgr:genEvents(snake:getDisk(1))
-	for _,e in ipairs(events) do
-		if e[1] == "FRUIT" then
-			if e[2] then
-				score:add(100)
-			else
-				score:add(50)
+	bmgr:update(dt)
+	if not self.sleep and snake.waitcount < 0 then
+		self.sleep=true
+		--bmgr:sleep()
+		snake:sleep()
+	elseif self.sleep and snake.waitcount > 0 then
+		self.sleep=false
+		--bmgr:wakeup(evmgr)
+		snake:wakeup()
+	end
+	if not self.sleep then
+		local events = bmgr:genEvents(snake:getDisk(1))
+		for _,e in ipairs(events) do
+			if e[1] == "FRUIT" then
+				score:add(e[2])
+				snake:addRing()
+				score:grow(1)
 			end
-			snake:addRing()
-			evmgr:addEvent(5,score,score.add,math.floor(#snake/10),true,4)
-			score:addFuture(math.floor(#snake/10)*5)
 		end
 	end
 	if snake:selfhit() then
@@ -147,15 +222,13 @@ function hiscorestate:init()
 
 	self.titreBgColor = {0,0,196,128}
 	self.titreFgColor= {255,255,255}
-	self.titreFont = love.graphics.newFont(32) 
 	self.titre = "OPHIDIAN CRAWLER"
-	local titreHeight = math.floor(self.titreFont:getHeight()*1.5)
-	self.titreY = titreOffset + math.floor(self.titreFont:getHeight()*0.25)
+	local titreHeight = math.floor(rsc.titleFont:getHeight()*1.5)
+	self.titreY = titreOffset + math.floor(rsc.titleFont:getHeight()*0.25)
 	self.titreRectangle = {0,titreOffset,SW,titreHeight}
 
 	self.message="PRESS ANY KEY TO PLAY"
-	self.font=love.graphics.newFont(20)
-	self.messageY = SH - 1.5*self.font:getHeight()
+	self.messageY = SH - 1.5*rsc.font:getHeight()
 	
 	self.demoSnakes={}
 	for i=1,5 do
@@ -165,21 +238,21 @@ function hiscorestate:init()
 	self.selectSnake.bodyColor={196,196,196}
 	self.selectSnake.headColor={196,20,20}
 	
-	self.scoreFont = love.graphics.newFont(24)
-	local s = Highscore.getHighScores()
+	local ns = Highscore.getNbScores()
 	self.scoreY={}
-	local sh = (#s + 2)*1.2*self.scoreFont:getHeight()
-	self.scoreY[1] = (SH - titreHeight - titreOffset - sh) / 2 + titreHeight + titreOffset
-	for i= 2 , #s do
-		self.scoreY[i] = self.scoreY[i-1] + 1.2 * self.scoreFont:getHeight()
+	local sh = (ns + 4)*1.2*rsc.menuFont:getHeight()
+	self.scoreTitreY = (SH - titreHeight - titreOffset - sh) / 2 + titreHeight + titreOffset
+	self.scoreY[1] = self.scoreTitreY + 2.4 * rsc.menuFont:getHeight()
+	for i= 2 , ns do
+		self.scoreY[i] = self.scoreY[i-1] + 1.2 * rsc.menuFont:getHeight()
 	end
-	self.scoreY[#s+1] = self.scoreY[#s] + 2.4 * self.scoreFont:getHeight()
+	self.scoreY[ns+1] = self.scoreY[ns] + 2.4 * rsc.menuFont:getHeight()
 
-	self.scoreW = self.scoreFont:getWidth("99. MMMMMMMMMM 999999")
+	self.scoreW = rsc.menuFont:getWidth("99. MMMMMMMMMM 999999")
 	self.scoreX={}
 	self.scoreX[1] = (SW - self.scoreW)/2
-	self.scoreX[2] = self.scoreX[1] + self.scoreFont:getWidth("99. ")
-	self.scoreX[3] = self.scoreX[1] + self.scoreFont:getWidth("99. MMMMMMMMMM ")
+	self.scoreX[2] = self.scoreX[1] + rsc.menuFont:getWidth("99. ")
+	self.scoreX[3] = self.scoreX[1] + rsc.menuFont:getWidth("99. MMMMMMMMMM ")
 	self.scoreLastW = self.scoreX[1]+self.scoreW-self.scoreX[3]
 	self.scoreColor = {255,255,255}
 	self.scoreSelectColor = {255,255,0}
@@ -193,6 +266,22 @@ function hiscorestate:enter()
 		s:setAutoPilot(evmgr)
 		s.speed = math.random(200,300)
 	end
+	self.listNames=Highscore.getListNames()
+	self.iListe=1
+	self.currentScores = Highscore.getHighScores(self.listNames[self.iListe])
+	self.currentXOff = 0
+	evmgr:addEvent(5,self,self.nextHighscoreList)
+end
+
+function hiscorestate:nextHighscoreList()
+	self.iListe = self.iListe + 1
+	if self.iListe > #self.listNames then
+		self.iListe=1
+	end
+	self.oldScores = self.currentScores
+	self.currentScores = Highscore.getHighScores(self.listNames[self.iListe])
+	self.currentXOff=SW
+	evmgr:addEvent(5,self,self.nextHighscoreList)
 end
 
 function hiscorestate:flipMessage()
@@ -201,13 +290,39 @@ function hiscorestate:flipMessage()
 end
 
 function hiscorestate:update(dt)
+	if self.currentXOff > 0 then
+		self.currentXOff= self.currentXOff - SW/2*dt
+	else
+		self.currentXOff=0
+	end
 	evmgr:update(dt)
 	for _,s in ipairs(self.demoSnakes) do
 		s:update(dt)
 	end
 	--self.selectSnake:update(dt)
+end
+
+function hiscorestate:drawScores(xoff,scores)
+	-- display high scores
+	local s = scores
+	lg.setFont(rsc.menuFont)
+	lg.setColor(self.scoreColor)
+	lg.printf(s.title,xoff,self.scoreTitreY,SW,"center")
+	for i,sc in ipairs(s) do
+		if sc.last then
+			lg.setColor(self.scoreSelectColor)
+		else
+			lg.setColor(self.scoreColor)
+		end
+		lg.print(i,self.scoreX[1]+xoff,self.scoreY[i])
+		lg.print(sc.name,self.scoreX[2]+xoff,self.scoreY[i])
+		lg.printf(sc.score,self.scoreX[3]+xoff,self.scoreY[i],self.scoreLastW,"right")
+	end
 	
-	
+	lg.setColor(self.scoreSelectColor)
+	lg.print("LAST SCORE",self.scoreX[1]+xoff,self.scoreY[#s+1])
+	lg.printf(s.lastScore,self.scoreX[3]+xoff,self.scoreY[#s+1],self.scoreLastW,"right")
+
 end
 
 function hiscorestate:draw()
@@ -216,35 +331,23 @@ function hiscorestate:draw()
 	end
 	
 	--self.selectSnake:draw()
-	love.graphics.setColor(self.titreBgColor)
-	love.graphics.rectangle('fill',unpack(self.titreRectangle))
-	love.graphics.setColor(self.titreFgColor)
-	love.graphics.setFont(self.titreFont)
-	love.graphics.printf(self.titre,0,self.titreY,SW,"center")
+	lg.setColor(self.titreBgColor)
+	lg.rectangle('fill',unpack(self.titreRectangle))
+	lg.setColor(self.titreFgColor)
+	lg.setFont(rsc.titleFont)
+	lg.printf(self.titre,0,self.titreY,SW,"center")
 
 	if self.showMessage then
-		love.graphics.setColor({255,255,255})
-		love.graphics.setFont(self.font)
-		love.graphics.printf(self.message,0,self.messageY,SW,"center")
+		lg.setColor({255,255,255})
+		lg.setFont(rsc.font)
+		lg.printf(self.message,0,self.messageY,SW,"center")
 	end
 	
 	-- display high scores
-	local s = Highscore.getHighScores()
-	love.graphics.setFont(self.scoreFont)
-	for i,sc in ipairs(s) do
-		if sc.last then
-			love.graphics.setColor(self.scoreSelectColor)
-		else
-			love.graphics.setColor(self.scoreColor)
-		end
-		love.graphics.print(i,self.scoreX[1],self.scoreY[i])
-		love.graphics.print(sc.name,self.scoreX[2],self.scoreY[i])
-		love.graphics.printf(sc.score,self.scoreX[3],self.scoreY[i],self.scoreLastW,"right")
+	self:drawScores(self.currentXOff,self.currentScores)
+	if self.currentXOff > 0 then
+		self:drawScores(self.currentXOff-SW,self.oldScores)
 	end
-	
-	love.graphics.setColor(self.scoreSelectColor)
-	love.graphics.print("LAST SCORE",self.scoreX[1],self.scoreY[#s+1])
-	love.graphics.printf(Highscore.getLastScore(),self.scoreX[3],self.scoreY[#s+1],self.scoreLastW,"right")
 	
 end
 
@@ -256,27 +359,21 @@ end
 function gameoverstate:init()
 
 	self.message="PRESS ANY KEY TO PLAY"
-	self.font=love.graphics.newFont(20)
-	self.messageY = SH - 1.5*self.font:getHeight()
-
-	self.bigFont = love.graphics.newFont(32)
-
-	self.y = (SH-self.font:getHeight())/2
+	self.messageY = SH - 1.5*rsc.font:getHeight()
+	self.y = (SH-rsc.font:getHeight())/2
 		
-	--[[
-	self.font =  love.graphics.newFont(32) 
-	self.message = "GAME OVER - PRESS ANY KEY TO PLAY"
-	--]]
 end
 
 function gameoverstate:enter()
 	evmgr:clean()
 	self.showMessage=true
 	
+	self.hscores={}
 	self.text="GAME OVER\nFINAL SCORE : "..score.value.."\n\n"
-	local hasHS = Highscore.setLastScore(score.value)
+		
+
 	self.enterName=false
-	if hasHS then
+	if score:setLastScore() then
 		self.text = self.text .. "HIGH SCORE - PLEASE ENTER NAME"
 		self.enterName=true
 		self.name = Highscore.getPlayerName()
@@ -303,19 +400,19 @@ end
 
 function gameoverstate:draw()
 	playstate:draw()
-	love.graphics.setColor({255,255,255})
-	love.graphics.setFont(self.bigFont)
-	love.graphics.printf(self.text,0,100,SW,"center")
+	lg.setColor({255,255,255})
+	lg.setFont(rsc.titleFont)
+	lg.printf(self.text,0,100,SW,"center")
 	if self.enterName then
-		love.graphics.setColor({0,0,196,128})
-		local fh = self.bigFont:getHeight()
-		local fw = self.bigFont:getWidth(self.name.."_")+30
-		love.graphics.rectangle('fill',(SW-fw)/2,self.y-fh*0.25,fw,fh*1.5)
-		love.graphics.setColor({255,0,0})
-		love.graphics.printf(self.name.."_",0,self.y,SW,"center")
+		lg.setColor({0,0,196,128})
+		local fh = rsc.titleFont:getHeight()
+		local fw = rsc.titleFont:getWidth(self.name.."_")+30
+		lg.rectangle('fill',(SW-fw)/2,self.y-fh*0.25,fw,fh*1.5)
+		lg.setColor({255,0,0})
+		lg.printf(self.name.."_",0,self.y,SW,"center")
 	elseif self.showMessage then
-		love.graphics.setFont(self.font)
-		love.graphics.printf(self.message,0,self.messageY,SW,"center")
+		lg.setFont(rsc.font)
+		lg.printf(self.message,0,self.messageY,SW,"center")
 	end
 end
 
@@ -326,7 +423,7 @@ function gameoverstate:keypressed(key,unicode)
 				self.name=string.sub(self.name,1,-2)
 			end
 		elseif key == "return" then
-			Highscore.recordHighScore(score.value,self.name)
+			score:recordHighScore(self.name)
 			state=hiscorestate
 			state:enter()
 		elseif unicode > 31 and unicode < 127 then

@@ -24,19 +24,37 @@ distribution.
 local filename="hiscore.lst"
 local hs={}
 local scores={}
-local lastScore=0
 local playerName=""
+local nbScores=5
 
-local function sort()
-	table.sort(scores,function (a,b) return a.score > b.score end)
+local function sort(listname)
+	table.sort(scores[listname],scores[listname].def.comp)
 end
 
+local function comp_score_desc(a,b)
+	return a.score > b.score
+end
+
+local function comp_score_asc(a,b)
+	return a.score < b.score
+end
+
+local lists = {
+	{name='freegame',title='GAME HIGHSCORES',defScore=100,comp=comp_score_desc},
+	{name='firstminute',title='FIRST MINUTE HIGHSCORES',defScore=100,comp=comp_score_desc},
+	{name='len100',title='LENGTH 100 BEST TIMES',defScore=15*60,comp=comp_score_asc},
+}
+
 local function write()
-	sort()
+	for ln,sr in pairs(scores) do
+		sort(ln)
+	end
 	local f = love.filesystem.newFile(filename)
 	f:open('w')
-	for _,sp in ipairs(scores) do
-		f:write(sp.name .. "=" .. sp.score.."\r\n")
+	for ln,sl in pairs(scores) do
+		for _,sp in ipairs(sl) do
+			f:write("@" .. ln .. "@" .. sp.name .. "@" .. sp.score .. "@\r\n")
+		end
 	end
 	if playerName then
 		f:write(playerName.."=00000\r\n")
@@ -44,60 +62,96 @@ local function write()
 	f:close()
 end
 
-function hs.init()
-	scores={}
-	if love.filesystem.exists(filename) then
-		local i=1
-		for line in love.filesystem.lines(filename) do
-			n,s = line:match("(%w+)=(%d+)")
-			if s == "00000" then
-				playerName=string.upper(n)
-			else
-				scores[i] = {score=tonumber(s),name=string.upper(n)}
-				i=i+1
-			end
-		end
-	else
-		for i = 1,5 do
-			scores[i]={score=1000,name="NOBODY"}
-		end
-	end
-	sort()
+local function inHighScore(listname,score)
+	sort(listname)
+	local stub={score=score}
+	return scores[listname].def.comp(stub,scores[listname][#scores[listname]])
 end
 
-function hs.setLastScore(score)
-	sort()
-	for _,sc in ipairs(scores) do
-		sc.last=nil
-	end
-	lastScore=score
-	if score > scores[#scores].score then
-		return true
-	else
-		return false
-	end
-end
-
-function hs.recordHighScore(score,name)
-	name=string.upper(name)
-	sort()
-	if score > scores[#scores].score then
+local function addHighScore(listname,score,name)
+	if inHighScore(listname,score) then
 		playerName=name
-		scores[#scores] = {score=score,name=name,last=true}
+		scores[listname][#scores[listname]] = {score=score,name=name,last=true}
 		write()
 	end	
 end
 
-function hs.getLastScore()
-	return lastScore
+local function setLastScore(listname,score)
+	for _,sc in ipairs(scores[listname]) do
+		sc.last=nil
+	end
+	scores[listname].lastScore=score
+	return inHighScore(listname,score) 
 end
 
-function hs.getHighScores()
-	return scores
+function hs.init()
+	for _,l in ipairs(lists) do
+		scores[l.name] = {lastScore=0,title=l.title,def=l}
+	end
+
+	if love.filesystem.exists(filename) then
+		local i=1
+		for line in love.filesystem.lines(filename) do
+			if string.sub(line,1,1) == "@" then
+				ln,n,s = line:match("@(%w+)@(%w+)@(%d+)@")
+				if scores[ln] then
+					table.insert(scores[ln],{score=tonumber(s),name=string.upper(n)})
+				end
+			else
+				n,s = line:match("(%w+)=(%d+)")
+				if s == "00000" then
+					playerName=string.upper(n)
+				else
+					table.insert(scores.freegame,{score=tonumber(s),name=string.upper(n)})
+				end
+			end
+		end
+	end
+	
+	for ln,sr in pairs(scores) do
+		local defScore=scores[ln].def.defScore
+		if #sr < nbScores then
+			for i = #sr+1,nbScores do
+				scores[ln][i]={score=defScore,name="NOBODY"}
+			end
+		end
+	end
+	
+	for ln,sr in pairs(scores) do
+		sort(ln)
+		if #sr > nbScores then
+			scores[nbScores+1]=nil
+		end
+	end
+	
+end
+
+function hs.setLastScore(listname,score)
+	return setLastScore(listname,score)
+end
+
+function hs.recordHighScore(listname,score,name)
+	name=string.upper(name)
+	addHighScore(listname,score,name)
+end
+
+function hs.getHighScores(listname)
+	return scores[listname]
 end
 
 function hs.getPlayerName()
 	return playerName
 end
 
+function hs.getNbScores()
+	return nbScores
+end
+
+function hs.getListNames()
+	local names={}
+	for _,l in ipairs(lists) do
+		table.insert(names,l.name)
+	end
+	return names
+end
 return hs
