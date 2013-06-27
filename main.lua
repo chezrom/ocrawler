@@ -63,10 +63,15 @@ function score:reset()
 	self.tnext=1
 
 	self.l100display=""
+	self.l100score=20*60
+	self.l100hs = Highscore.setLastScore('len100',self.l100score)
+	
 	self.hscores={}
 	
 	self.gclock=events.clock()
 	self.fmclock=events.rclock(60,self.setFirstMinuteScore,self)
+
+
 end
 
 
