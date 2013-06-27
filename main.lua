@@ -349,12 +349,12 @@ function hiscorestate:drawScores(xoff,scores)
 		end
 		lg.print(i,self.scoreX[1]+xoff,self.scoreY[i])
 		lg.print(sc.name,self.scoreX[2]+xoff,self.scoreY[i])
-		lg.printf(sc.score,self.scoreX[3]+xoff,self.scoreY[i],self.scoreLastW,"right")
+		lg.printf(s.fmt(sc.score),self.scoreX[3]+xoff,self.scoreY[i],self.scoreLastW,"right")
 	end
 	
 	lg.setColor(self.scoreSelectColor)
 	lg.print("LAST SCORE",self.scoreX[1]+xoff,self.scoreY[#s+1])
-	lg.printf(s.lastScore,self.scoreX[3]+xoff,self.scoreY[#s+1],self.scoreLastW,"right")
+	lg.printf(s.fmt(s.lastScore),self.scoreX[3]+xoff,self.scoreY[#s+1],self.scoreLastW,"right")
 
 end
 

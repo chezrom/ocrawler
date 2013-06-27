@@ -39,10 +39,17 @@ local function comp_score_asc(a,b)
 	return a.score < b.score
 end
 
+local function format_nb(x)
+	return string.format("%d",x)
+end
+local function format_time(x)
+	return string.format("%2d:%02d",math.floor(x/60),x%60)
+end
+
 local lists = {
-	{name='freegame',title='GAME HIGHSCORES',defScore=100,comp=comp_score_desc},
-	{name='firstminute',title='FIRST MINUTE HIGHSCORES',defScore=100,comp=comp_score_desc},
-	{name='len100',title='LENGTH 100 BEST TIMES',defScore=15*60,comp=comp_score_asc},
+	{name='freegame',title='GAME HIGHSCORES',defScore=100,comp=comp_score_desc,format=format_nb},
+	{name='firstminute',title='FIRST MINUTE HIGHSCORES',defScore=100,comp=comp_score_desc,format=format_nb},
+	{name='len100',title='LENGTH 100 BEST TIMES',defScore=15*60,comp=comp_score_asc,format=format_time},
 }
 
 local function write()
@@ -86,7 +93,7 @@ end
 
 function hs.init()
 	for _,l in ipairs(lists) do
-		scores[l.name] = {lastScore=0,title=l.title,def=l}
+		scores[l.name] = {lastScore=0,title=l.title,def=l,fmt=l.format}
 	end
 
 	if love.filesystem.exists(filename) then
