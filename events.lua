@@ -76,6 +76,7 @@ end
 
 local next_event_id = 1
 
+
 local evt_metatable = {
 	__lt = function (a,b) return a.time < b.time end,
 	__le = function (a,b) return a.time <= b.time end,
@@ -92,13 +93,15 @@ local evt_metatable = {
 	end
 }
 
-local methods={}
+local heap = {}
+local events = {}
+local time=0
 
-function methods:addEvent(delay,obj,func,...)
+function events.addEvent(delay,obj,func,...)
 	local eid = next_event_id
 	next_event_id = next_event_id + 1
 	local evt = setmetatable({
-		time = delay + self.time, 
+		time = delay + time, 
 		object = obj,
 		func = func,
 		event_id = eid,
@@ -110,32 +113,30 @@ function methods:addEvent(delay,obj,func,...)
 			obj.events = {[eid]=1}
 		end
 	end
-	push(self.heap,evt)
+	push(heap,evt)
 end
 
-function methods:update(dt)
-	local ctime = self.time + dt
-	local heap = self.heap
-	while #heap > 0 and heap[1].time < ctime do
+function events.update(dt)
+	time = time + dt
+	while #heap > 0 and heap[1].time < time do
 		local evt = pop(heap)
 		evt(evt.object,unpack(evt.args))
-	end
-	self.time = ctime
-	
+	end	
 end
 
-function methods:clean()
-	self.heap={}
+function events.clean()
+	heap={}
 end
 
-local function newEventsManager ()
-	local evmgr={}
-	for k,v in pairs(methods) do
-		evmgr[k]=v
-	end
-	evmgr.heap={}
-	evmgr.time=0
-	return evmgr
+function events.clock()
+	local otime = time
+	return function ()  return time-otime ; end
 end
 
-return newEventsManager
+function events.rclock(delay,alertf,...)
+	local otime = time
+	events.addEvent(delay,nil,alertf,...)
+	return function () return delay - time + otime ; end
+end
+
+return events

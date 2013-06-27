@@ -23,7 +23,9 @@ distribution.
 
 local lg=love.graphics
 
+local events=require 'events'
 local rsc=require 'resources'
+
 local fruit_color_prehide={196,15,15}
 local fruit_color={196,196,15}
 local heart_color={196,196,196,196}
@@ -38,7 +40,7 @@ function fmethods:draw()
 	lg.circle('fill',self.x,self.y,self.r,32)
 end
 
-function fmethods:genEvent(evmgr,hb,x,y,r) 
+function fmethods:genEvent(hb,x,y,r) 
 	if intersect(self.hbox,	hb) then
 		local fx,fy,fr = self.x,self.y,self.r
 		local d = (x-fx)*(x-fx)+(y-fy)*(y-fy)
@@ -47,13 +49,13 @@ function fmethods:genEvent(evmgr,hb,x,y,r)
 			local score = (self.mature and 100) or 50
 			--table.insert(self.scores,{x=fx,y=fy,t=string.format("%d",score),c=self.color})
 			table.insert(self.scores,{x=fx,y=fy,t=string.format("%d",score),fade=0})
-			self:invalid(evmgr)
+			self:invalid()
 			return {"FRUIT",score}
 		end
 	end
 end
 
-function fmethods:show(evmgr)
+function fmethods:show()
 	if not self.sleep then
 		self.color=fruit_color
 		local x,y,r = math.random(SW*0.1,SW*0.9),math.random(SH*0.1,SH*0.9),math.random(8,16)
@@ -63,25 +65,25 @@ function fmethods:show(evmgr)
 		self.r=r
 		self.valid=true
 		self.mature=false
-		evmgr:addEvent(math.random(5,8),self,self.prehide,evmgr)
+		events.addEvent(math.random(5,8),self,self.prehide)
 	end
 end
 
-function fmethods:prehide(evmgr)
+function fmethods:prehide()
 	if self.sleep then
 		self:invalid()
 	else
 		self.color=fruit_color_prehide
 		self.mature=true
-		evmgr:addEvent(2,self,self.invalid,evmgr)
+		events.addEvent(2,self,self.invalid)
 	end
 end
 
-function fmethods:invalid(evmgr)
+function fmethods:invalid()
 		self.valid=nil
 		self.events={}
 		if not self.sleep then
-			evmgr:addEvent(math.random(1,3),self,self.show,evmgr)
+			events.addEvent(math.random(1,3),self,self.show)
 		end
 end
 
@@ -93,11 +95,11 @@ function methods:sleep()
 	end
 end
 
-function methods:wakeup(evmgr)
+function methods:wakeup()
 	for _,f in ipairs(self.fruits) do
 		f.sleep=nil
 		if not f.valid then
-			f:invalid(evmgr)
+			f:invalid()
 		end
 	end
 end
@@ -113,17 +115,10 @@ function methods:draw()
 		end
 	end
 	lg.setFont(rsc.tinyFont)
-	--[[
-	for _,s in ipairs(self.scores) do
-		lg.setColor(s.c)
-		lg.print(s.t,s.x,s.y)
-	end
-	--]]
 	for _,s in ipairs(self.scores) do
 		lg.setColor({255,255,255,255-s.fade})
 		lg.print(s.t,s.x,s.y)
-	end
-	
+	end	
 end
 
 function methods:update(dt)
@@ -152,10 +147,9 @@ end
 
 function methods:genEvents(x,y,r)
 	local events={}
-	local evmgr=self.evmgr
 	local hbox={x-r,y-r,x+r,y+r}
 	for _,f in ipairs(self.fruits) do
-		local e = f.valid and f:genEvent(evmgr,hbox,x,y,r)
+		local e = f.valid and f:genEvent(hbox,x,y,r)
 		if e then
 			table.insert(events,e)
 		end
@@ -163,20 +157,19 @@ function methods:genEvents(x,y,r)
 	return events
 end
 
-local function newBonusManager(evmgr,maxFruits)
+local function newBonusManager(maxFruits)
 	local bmgr = {}
 	for k,v in pairs(methods) do
 		bmgr[k] = v
 	end
-	bmgr.evmgr=evmgr
 	bmgr.fruits={}
 	bmgr.scores={}
 	for i=1,maxFruits do
 		local f=setmetatable({scores=bmgr.scores},{__index=fmethods})
 		if math.random(1,4) == 1 then
-			f:invalid(evmgr)
+			f:invalid()
 		else
-			f:show(evmgr)
+			f:show()
 		end
 		bmgr.fruits[i]=f
 	end

@@ -23,7 +23,7 @@ distribution.
 
 local lg = love.graphics
 
-local Events = require 'events'
+local events = require 'events'
 local Snake = require 'snake'
 local Bonus = require 'bonus'
 local Highscore = require 'highscore'
@@ -34,7 +34,6 @@ local score_color={255,255,255}
 
 local snake={}
 local score={}
-local evmgr={}
 local bmgr={}
 
 local state=nil
@@ -43,8 +42,10 @@ local gameoverstate={}
 local pausestate={}
 local hiscorestate={}
 
-local fminute_fmttime = "FIRST MINUTE : %02d s"
 local fminute_fmtscore = "FIRST MINUTE : %5d"
+local gtime_fmt = "%2d:%02d"
+local slength_fmt = "L %3d"
+local l100_fmt = "100@%d:%02d"
 
 function score:reset()
 	self.events={}
@@ -53,22 +54,36 @@ function score:reset()
 	self:add(0,true)
 
 	self.length=10
-	--
-	self.mtime=60
-	self.mdisplay=string.format(fminute_fmttime,self.mtime)
+	self.lendisplay=string.format(slength_fmt,self.length)
+	self.mdisplay=""
 	self.mhscore=false
 	self.mscore=0
-	
+
+	self.tdisplay=string.format(gtime_fmt,0,0)
+	self.tnext=1
+
+	self.l100display=""
 	self.hscores={}
 	
-	evmgr:addEvent(1,score,score.secondTick)
-	
+	self.gclock=events.clock()
+	self.fmclock=events.rclock(60,self.setFirstMinuteScore,self)
 end
+
 
 function score:grow(incr)
 	self.length = self.length+incr
-	evmgr:addEvent(5,self,self.add,math.floor(self.length/10),true,4)
+	self.lendisplay=string.format(slength_fmt,self.length)
+	events.addEvent(5,self,self.add,math.floor(self.length/10),true,4)
 	self:addFuture(math.floor(self.length/10)*5)
+	
+	if self.length == 100 then
+		self.l100score = math.ceil(self.gclock())
+		self.l100display=string.format(l100_fmt,math.floor(self.l100score/60),math.floor(self.l100score) % 60)
+		self.l100hs = Highscore.setLastScore('len100',self.l100score)
+		if self.l100hs then
+			self.l100display = self.l100display .. "(HS)"
+		end
+	end
 end
 
 function score:setFirstMinuteScore() 
@@ -82,11 +97,17 @@ end
 
 function score:setLastScore()
 	self.hscores={}
-	if self.mtime > 0 then
+	self.events={}
+	local gtime=self.gclock()
+	self.gclock = function () return gtime; end
+	if self.fmclock() > 0 then
 		self:setFirstMinuteScore()
 	end
 	if self.mhscore then
 		table.insert(self.hscores,{listname='firstminute',score=self.mscore})
+	end
+	if self.l100hs then
+		table.insert(self.hscores,{listname='len100',score=self.l100score})
 	end
 	if Highscore.setLastScore('freegame',self.value) then
 		table.insert(self.hscores,{listname='freegame',score=self.value})
@@ -100,15 +121,6 @@ function score:recordHighScore(name)
 	end
 end
 
-function score:secondTick()
-	self.mtime = self.mtime - 1
-	if self.mtime > 0 then
-		self.mdisplay=string.format(fminute_fmttime,self.mtime)
-		evmgr:addEvent(1,score,score.secondTick)
-	else
-		self:setFirstMinuteScore()
-	end
-end
 
 function score:addFuture(incr)
 	local v = self.future + incr
@@ -130,22 +142,37 @@ function score:add(incr,isfut,remain)
 		end
 		self.future=v
 		if remain and remain > 0 then
-			evmgr:addEvent(1,score,score.add,incr,true,remain-1)
+			events.addEvent(1,score,score.add,incr,true,remain-1)
 		end
 	end
 end
 
 function score:draw()
+
+	if self.gclock() >= self.tnext then
+		self.tdisplay=string.format(gtime_fmt,math.floor(self.tnext/60),self.tnext % 60)
+		self.tnext=self.tnext+1
+	end
+
+
 	lg.setFont(rsc.font)
 	lg.setColor(score_color)
 	lg.print(self.string,0,0)
 
-	lg.print(#snake,0,30)
 
 	lg.setColor(score_future_color)
 	lg.print(self.fstring,100,0)
+
+	lg.setColor(score_color)
+
+	lg.print(self.tdisplay,200,0)
+	lg.print(self.lendisplay,280,0)
+	lg.print(self.l100display,350,0)
+	
 	lg.setColor({196,196,196})
-	lg.print(self.mdisplay,500,0)
+	lg.print(self.mdisplay,520,0)
+
+	
 end
 
 function love.load()
@@ -154,7 +181,6 @@ function love.load()
 	Highscore.init()
 	gameoverstate:init()
 	hiscorestate:init()
-    evmgr=Events()		
 	state=hiscorestate
 	state:enter()
 end
@@ -164,9 +190,9 @@ function reset()
 	playstate.sleep=false
 	
 	
-	evmgr:clean()
+	events.clean()
 	score:reset()
-	bmgr=Bonus(evmgr,10)
+	bmgr=Bonus(10)
 	snake=Snake(30, math.floor(SH/2),10)
 end
 
@@ -176,7 +202,7 @@ function intersect(hb1,hb2)
 end
 
 function playstate:update(dt)
-	evmgr:update(dt)
+	events.update(dt)
 	snake:update(dt)
 	bmgr:update(dt)
 	if not self.sleep and snake.waitcount < 0 then
@@ -256,21 +282,23 @@ function hiscorestate:init()
 	self.scoreLastW = self.scoreX[1]+self.scoreW-self.scoreX[3]
 	self.scoreColor = {255,255,255}
 	self.scoreSelectColor = {255,255,0}
+
+	
 end
 
 function hiscorestate:enter()
 	self.showMessage=true
-	evmgr:clean()
-	evmgr:addEvent(0.5,self,self.flipMessage)
+	events.clean()
+	events.addEvent(0.5,self,self.flipMessage)
 	for _,s in ipairs(self.demoSnakes) do
-		s:setAutoPilot(evmgr)
+		s:setAutoPilot()
 		s.speed = math.random(200,300)
 	end
 	self.listNames=Highscore.getListNames()
 	self.iListe=1
 	self.currentScores = Highscore.getHighScores(self.listNames[self.iListe])
 	self.currentXOff = 0
-	evmgr:addEvent(5,self,self.nextHighscoreList)
+	events.addEvent(5,self,self.nextHighscoreList)
 end
 
 function hiscorestate:nextHighscoreList()
@@ -281,12 +309,12 @@ function hiscorestate:nextHighscoreList()
 	self.oldScores = self.currentScores
 	self.currentScores = Highscore.getHighScores(self.listNames[self.iListe])
 	self.currentXOff=SW
-	evmgr:addEvent(5,self,self.nextHighscoreList)
+	events.addEvent(5,self,self.nextHighscoreList)
 end
 
 function hiscorestate:flipMessage()
 	self.showMessage = not self.showMessage
-	evmgr:addEvent(0.5,self,self.flipMessage)
+	events.addEvent(0.5,self,self.flipMessage)
 end
 
 function hiscorestate:update(dt)
@@ -295,7 +323,7 @@ function hiscorestate:update(dt)
 	else
 		self.currentXOff=0
 	end
-	evmgr:update(dt)
+	events.update(dt)
 	for _,s in ipairs(self.demoSnakes) do
 		s:update(dt)
 	end
@@ -365,12 +393,11 @@ function gameoverstate:init()
 end
 
 function gameoverstate:enter()
-	evmgr:clean()
+	events.clean()
 	self.showMessage=true
 	
 	self.hscores={}
 	self.text="GAME OVER\nFINAL SCORE : "..score.value.."\n\n"
-		
 
 	self.enterName=false
 	if score:setLastScore() then
@@ -378,10 +405,11 @@ function gameoverstate:enter()
 		self.enterName=true
 		self.name = Highscore.getPlayerName()
 	else
-		evmgr:addEvent(0.5,self,self.flipMessage)
-		evmgr:addEvent(3,self,self.startDemo)
+		events.addEvent(0.5,self,self.flipMessage)
+		events.addEvent(3,self,self.startDemo)
 		self.text = self.text .. "NO HIGH SCORE - TRY AGAIN"
 	end
+	
 end
 
 function gameoverstate:startDemo()
@@ -391,11 +419,11 @@ end
 
 function gameoverstate:flipMessage()
 	self.showMessage = not self.showMessage
-	evmgr:addEvent(0.5,self,self.flipMessage)
+	events.addEvent(0.5,self,self.flipMessage)
 end
 
 function gameoverstate:update(dt)
-	evmgr:update(dt)
+	events.update(dt)
 end
 
 function gameoverstate:draw()

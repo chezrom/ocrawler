@@ -21,6 +21,7 @@ misrepresented as being the original software.
 distribution.
 --]]
 
+local events=require 'events'
 local methods={}
 
 local max_move=10
@@ -123,7 +124,7 @@ function methods:autoPilot(dt)
 	return newDir
 end
 
-function methods:computeWantedDir(evmgr)
+function methods:computeWantedDir()
 
 	-- normalize angle between -pi .. pi
 	local dir = self.dir
@@ -144,13 +145,13 @@ function methods:computeWantedDir(evmgr)
 		wd = wd - 2*math.pi
 	end
 	self.wantedDir = wd
-	evmgr:addEvent(0.5 * math.random(1,5),self,self.computeWantedDir,evmgr)
+	events.addEvent(0.5 * math.random(1,5),self,self.computeWantedDir)
 end
 
-function methods:setAutoPilot(evmgr)
+function methods:setAutoPilot()
 	self.wantedDir=0
 	self.pilot=self.autoPilot
-	self:computeWantedDir(evmgr)
+	self:computeWantedDir()
 end
 
 function methods:update(dt)
