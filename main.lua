@@ -28,12 +28,9 @@ local Snake = require 'snake'
 local Bonus = require 'bonus'
 local Highscore = require 'highscore'
 local rsc = require 'resources'
-
-local score_future_color={255,0,0}
-local score_color={255,255,255}
+local score=require 'score'
 
 local snake={}
-local score={}
 local bmgr={}
 
 local state=nil
@@ -42,143 +39,6 @@ local gameoverstate={}
 local pausestate={}
 local hiscorestate={}
 
-local fminute_fmtscore = "FIRST MINUTE : %5d"
-local gtime_fmt = "%2d:%02d"
-local slength_fmt = "L %3d"
-local l100_fmt = "100@%d:%02d"
-
-function score:reset()
-	self.events={}
-	self.value=0
-	self.future=0
-	self:add(0,true)
-
-	self.length=10
-	self.lendisplay=string.format(slength_fmt,self.length)
-	self.mdisplay=""
-	self.mhscore=false
-	self.mscore=0
-
-	self.tdisplay=string.format(gtime_fmt,0,0)
-	self.tnext=1
-
-	self.l100display=""
-	self.l100score=20*60
-	self.l100hs = Highscore.setLastScore('len100',self.l100score)
-	
-	self.hscores={}
-	
-	self.gclock=events.clock()
-	self.fmclock=events.rclock(60,self.setFirstMinuteScore,self)
-
-
-end
-
-
-function score:grow(incr)
-	self.length = self.length+incr
-	self.lendisplay=string.format(slength_fmt,self.length)
-	events.addEvent(5,self,self.add,math.floor(self.length/10),true,4)
-	self:addFuture(math.floor(self.length/10)*5)
-	
-	if self.length == 100 then
-		self.l100score = math.ceil(self.gclock())
-		self.l100display=string.format(l100_fmt,math.floor(self.l100score/60),math.floor(self.l100score) % 60)
-		self.l100hs = Highscore.setLastScore('len100',self.l100score)
-		if self.l100hs then
-			self.l100display = self.l100display .. "(HS)"
-		end
-	end
-end
-
-function score:setFirstMinuteScore() 
-	self.mscore = self.value
-	self.mdisplay = string.format(fminute_fmtscore,self.mscore)
-	self.mhscore = Highscore.setLastScore('firstminute',self.value)
-	if self.mhscore then
-		self.mdisplay = self.mdisplay .. " (HS)"
-	end
-end
-
-function score:setLastScore()
-	self.hscores={}
-	self.events={}
-	local gtime=self.gclock()
-	self.gclock = function () return gtime; end
-	if self.fmclock() > 0 then
-		self:setFirstMinuteScore()
-	end
-	if self.mhscore then
-		table.insert(self.hscores,{listname='firstminute',score=self.mscore})
-	end
-	if self.l100hs then
-		table.insert(self.hscores,{listname='len100',score=self.l100score})
-	end
-	if Highscore.setLastScore('freegame',self.value) then
-		table.insert(self.hscores,{listname='freegame',score=self.value})
-	end
-	return #self.hscores>0
-end
-
-function score:recordHighScore(name)
-	for _,hsr in ipairs(self.hscores) do
-		Highscore.recordHighScore(hsr.listname,hsr.score,name)
-	end
-end
-
-
-function score:addFuture(incr)
-	local v = self.future + incr
-	self.fstring=string.format("+%04d",v)
-	self.future=v
-end
-
-function score:add(incr,isfut,remain)
-	local v = self.value + incr
-	self.string=string.format("%06d",v)
-	self.value=v
-	if isfut then
-		v = self.future - incr
-		if v>0 then
-			self.fstring=string.format("+%04d",v)
-		else
-			v=0
-			self.fstring=""
-		end
-		self.future=v
-		if remain and remain > 0 then
-			events.addEvent(1,score,score.add,incr,true,remain-1)
-		end
-	end
-end
-
-function score:draw()
-
-	if self.gclock() >= self.tnext then
-		self.tdisplay=string.format(gtime_fmt,math.floor(self.tnext/60),self.tnext % 60)
-		self.tnext=self.tnext+1
-	end
-
-
-	lg.setFont(rsc.font)
-	lg.setColor(score_color)
-	lg.print(self.string,0,0)
-
-
-	lg.setColor(score_future_color)
-	lg.print(self.fstring,100,0)
-
-	lg.setColor(score_color)
-
-	lg.print(self.tdisplay,200,0)
-	lg.print(self.lendisplay,280,0)
-	lg.print(self.l100display,350,0)
-	
-	lg.setColor({196,196,196})
-	lg.print(self.mdisplay,520,0)
-
-	
-end
 
 function love.load()
 	SW,SH = lg.getWidth(), lg.getHeight()
@@ -196,7 +56,7 @@ function reset()
 	
 	
 	events.clean()
-	score:reset()
+	score.reset()
 	bmgr=Bonus(10)
 	snake=Snake(30, math.floor(SH/2),10)
 end
@@ -223,9 +83,9 @@ function playstate:update(dt)
 		local events = bmgr:genEvents(snake:getDisk(1))
 		for _,e in ipairs(events) do
 			if e[1] == "FRUIT" then
-				score:add(e[2])
+				score.add(e[2])
 				snake:addRing()
-				score:grow(1)
+				score.grow(1)
 			end
 		end
 	end
@@ -238,7 +98,7 @@ end
 function playstate:draw()
 	bmgr:draw()
 	snake:draw()
-	score:draw()
+	score.draw()
 end
 
 function playstate:keypressed(key)
@@ -402,10 +262,10 @@ function gameoverstate:enter()
 	self.showMessage=true
 	
 	self.hscores={}
-	self.text="GAME OVER\nFINAL SCORE : "..score.value.."\n\n"
+	self.text="GAME OVER\nFINAL SCORE : "..score.value().."\n\n"
 
 	self.enterName=false
-	if score:setLastScore() then
+	if score.setLastScore() then
 		self.text = self.text .. "HIGH SCORE - PLEASE ENTER NAME"
 		self.enterName=true
 		self.name = Highscore.getPlayerName()
@@ -456,7 +316,7 @@ function gameoverstate:keypressed(key,unicode)
 				self.name=string.sub(self.name,1,-2)
 			end
 		elseif key == "return" then
-			score:recordHighScore(self.name)
+			score.recordHighScore(self.name)
 			state=hiscorestate
 			state:enter()
 		elseif unicode > 31 and unicode < 127 then

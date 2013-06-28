@@ -28,7 +28,6 @@ local rsc=require 'resources'
 
 local fruit_color_prehide={196,15,15}
 local fruit_color={196,196,15}
-local heart_color={196,196,196,196}
 local fruit_radius=8
 
 -- vertical speed of number (pixel/s)
