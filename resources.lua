@@ -25,11 +25,20 @@ local resources={}
 
 local lg=love.graphics
 
+local fontFilename= "assets/diavlo.otf"
+
 local function loadFonts()
+	--[[
 	resources.tinyFont=lg.newFont(16)
 	resources.font=lg.newFont(20)
 	resources.titleFont=lg.newFont(32)
 	resources.menuFont=lg.newFont(24)
+	--]]
+	--
+	resources.tinyFont=lg.newFont(fontFilename,16)
+	resources.font=lg.newFont(fontFilename,20)
+	resources.titleFont=lg.newFont(fontFilename,32)
+	resources.menuFont=lg.newFont(fontFilename,24)
 end
 
 function resources.load()
