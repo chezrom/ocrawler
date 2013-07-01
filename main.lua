@@ -42,6 +42,7 @@ local hiscorestate={}
 
 function love.load()
 	SW,SH = lg.getWidth(), lg.getHeight()
+	lg.setBackgroundColor({0,64,64})
 	rsc.load()
 	Highscore.init()
 	gameoverstate:init()
@@ -96,8 +97,8 @@ function playstate:update(dt)
 end
 
 function playstate:draw()
-	bmgr:draw()
 	snake:draw()
+	bmgr:draw()
 	score.draw()
 end
 

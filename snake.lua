@@ -20,7 +20,9 @@ misrepresented as being the original software.
 3. This notice may not be removed or altered from any source
 distribution.
 --]]
-
+local lg=love.graphics
+local abs=math.abs
+local rsc=require 'resources'
 local events=require 'events'
 local methods={}
 
@@ -31,10 +33,14 @@ local snakeradius = 7
 local refdist = 2*7+4
 
 local active_bodyColor={50,196,50}
-local active_headColor={196,196,50}
+local active_headColor={255,255,128}
 
 local sleep_bodyColor={50,196,50,128}
-local sleep_headColor={196,196,50,128}
+local sleep_headColor={255,255,128,128}
+
+-- for computing sqrt with "alpha max + beta min" method
+local alpha=0.96043387
+local beta=0.39782473
 
 local default={
 	speed=250,
@@ -64,35 +70,7 @@ function methods:wakeup()
 end
 
 function methods:draw()
-	local x0,y0 = self.x,self.y
-	--local snakeradius=self.snakeRadius
-	local coord,x,y 
-	love.graphics.setColor(self.bodyColor)
-	for i=#self,2,-1 do
-		coord=self[i]
-		x,y = coord[1]+x0,coord[2]+y0
-	if x < 0 then
-		repeat
-			x = x + SW
-		until x >= 0	
-	elseif x>SW then
-		repeat
-			x = x - SW
-		until x <= SW
-	end
-	if y < 0 then
-		repeat
-			y = y + SH
-		until y>=0
-	elseif y>SH then
-		repeat
-			y = y - SH
-		until y<=SH
-	end
-		love.graphics.circle('fill',x,y,snakeradius,16)
-	end
-	love.graphics.setColor(self.headColor)
-	love.graphics.circle('fill',x0,y0,snakeradius,16)
+	lg.draw(self.batch,0,0)
 end
 
 
@@ -113,7 +91,7 @@ function methods:autoPilot(dt)
 	local newDir=nil
 	local dir = self.dir
 	local u = self.wantedDir - dir
-	local da = math.min(math.abs(u),self.angspeed * dt)
+	local da = math.min(abs(u),self.angspeed * dt)
 	if da > 0 then
 		if u>0 then
 			newDir = dir + da
@@ -139,9 +117,9 @@ function methods:computeWantedDir()
 	local x,y = self.x,self.y
 	local wd = math.atan2(math.random(SH*0.1,SH*0.9)-y,math.random(SW*0.1,SW*0.9)-x)
 	local dd = wd-dir
-	if math.abs(dd) > math.abs(dd+2*math.pi) then
+	if abs(dd) > abs(dd+2*math.pi) then
 		wd = wd + 2*math.pi
-	elseif math.abs(dd) > math.abs(dd-2*math.pi) then
+	elseif abs(dd) > abs(dd-2*math.pi) then
 		wd = wd - 2*math.pi
 	end
 	self.wantedDir = wd
@@ -149,13 +127,23 @@ function methods:computeWantedDir()
 end
 
 function methods:setAutoPilot()
+	self.noCheckSelfHit=true
 	self.wantedDir=0
 	self.pilot=self.autoPilot
 	self:computeWantedDir()
 end
 
-function methods:update(dt)
+function methods:plot(i,x,y,color)
+	self.batch:setColor(unpack(color))
+	if self.bid[i] then
+		self.batch:set(self.bid[i],x-snakeradius,y-snakeradius)
+	else
+		self.bid[i] = self.batch:add(x-snakeradius,y-snakeradius)
+	end
+end
 
+function methods:update(dt)
+	self.batch:bind()
 	--local snakeradius = self.snakeRadius
 	--local refdist = self.refdist
 	local newDir = self:pilot(dt)
@@ -184,28 +172,73 @@ function methods:update(dt)
 	end
 	self.x=x
 	self.y=y
+	self:plot(1,x,y,self.headColor)
+	local xv,yv=x,y
+	local xh,yh=x,y
+	
+	local dmin=2*snakeradius
+	local dmin2=dmin*dmin
 	
 	local lastx,lasty = 0,0
 	local is=2
+	self.visucoord={}
+	local hitByHead=0
+	if self.noCheckSelfHit then
+		hitByHead=1
+	end
 	while is <= #self do
 		x,y = self[is][1],self[is][2]
 		x = x - dx
 		y = y - dy
-			--
-			local nd = math.sqrt((x-lastx)*(x-lastx)+(y-lasty)*(y-lasty))
-			if nd > refdist then
-				local k = 1 - refdist/nd
-				x = x + (lastx-x) * k
-				y = y + (lasty-y) * k
-			end
-			--]]
-			lastx=x
-			lasty=y
 
+		local ux = abs(x-lastx)
+		local uy = abs(y-lasty)
+		local nd=0
+		if ux > uy then
+			nd=alpha*ux+beta*uy
+		else
+			nd=alpha*uy+beta*ux
+		end
+		--local nd = math.sqrt((x-lastx)*(x-lastx)+(y-lasty)*(y-lasty))
+		if nd > refdist then
+			local k = 1 - refdist/nd
+			x = x + (lastx-x) * k
+			y = y + (lasty-y) * k
+		end
+		
+		-- determine screen coordinates
+		xv=xv+(x-lastx)
+		yv=yv+(y-lasty)
+		if xv < 0 then
+			xv = xv + SW
+		elseif xv>SW then
+			xv = xv - SW
+		end
+		if yv < 0 then
+			yv = yv + SH
+		elseif yv>SH then
+			yv = yv - SH
+		end
+		table.insert(self.visucoord,{xv,yv})
+		self:plot(is,xv,yv,self.bodyColor)
+		-- determine if collision with head
+		if hitByHead<1 and is>4 then
+			ux = abs(xv-xh)
+			uy = abs(yv-yh)
+			if ux < dmin and uy < dmin and ux*uy < dmin2 then
+				hitByHead=is
+			end
+		end
+		
+		lastx=x
+		lasty=y
+	
 		self[is][1] = lastx
 		self[is][2] = lasty
 		is = is + 1
 	end
+	self.hitByHead=hitByHead
+	self.batch:unbind()
 end
 
 function methods:cellhitbox(icell) 
@@ -219,28 +252,7 @@ function methods:getDisk(icell)
 end
 
 function methods:selfhit()
-	local fmod=math.fmod
-	local abs=math.abs
-	local im=2*snakeradius
-	local dmin = im*im
-	-- to avoid some collision avoidance
-	local bx = SW-2*im
-	local by = SH-2*im
-	for is = 3,#self do
-		local x,y = abs(fmod(self[is][1],SW)),abs(fmod(self[is][2],SH))
-		if x>=bx then
-			x = SW - x
-		end
-		if y>=by then
-			y = SH - y
-		end
-		if x <= im and y <= im then 
-			if (x*x+y*y) < dmin then
-				return true
-			end
-		end
-	end
-	return false
+	return self.hitByHead > 0
 end
 
 function methods:addRing()
@@ -261,11 +273,16 @@ local function newSnake(x,y,len)
 	s.pilot = s.playerPilot
 	local is = 2
 	s[1]={0,0}
+	s.batch=lg.newSpriteBatch(rsc.snake[snakeradius],1000,'stream')
+	s.bid={}
 	while is <= len do
 		s[is]={-s.refdist,0}
 		is = is + 1
 	end
-
+	
+	s.batch=lg.newSpriteBatch(rsc.snake[snakeradius],1000,'stream')
+	s.bid={}
+	
 	return s
 end
 

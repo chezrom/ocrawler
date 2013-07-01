@@ -26,7 +26,7 @@ local lg=love.graphics
 local events=require 'events'
 local rsc=require 'resources'
 
-local fruit_color_prehide={196,15,15}
+local fruit_color_prehide={196,100,15}
 local fruit_color={196,196,15}
 local fruit_radius=8
 
@@ -36,7 +36,8 @@ local fmethods={}
 
 function fmethods:draw()
 	lg.setColor(self.color)
-	lg.circle('fill',self.x,self.y,self.r,32)
+	--lg.circle('fill',self.x,self.y,self.r,32)
+	lg.draw(rsc.vitamins[self.r],self.x-self.r,self.y-self.r)
 end
 
 function fmethods:genEvent(hb,x,y,r) 
@@ -123,6 +124,7 @@ end
 function methods:update(dt)
 
 	local toRemove={}
+	
 	for i,s in ipairs(self.scores) do
 		s.y = s.y - vspeed * dt
 		if s.y < -20 then
@@ -133,7 +135,6 @@ function methods:update(dt)
 				table.insert(toRemove,i)
 			end
 		end
-		
 	end
 
 	if #toRemove then
@@ -175,7 +176,5 @@ local function newBonusManager(maxFruits)
 	
 	return bmgr
 end
-
-
 
 return newBonusManager
