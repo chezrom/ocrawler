@@ -58,7 +58,12 @@ end
 function fmethods:show()
 	if not self.sleep then
 		self.color=fruit_color
-		local x,y,r = math.random(SW*0.1,SW*0.9),math.random(SH*0.1,SH*0.9),math.random(8,16)
+		
+		local room = table.remove(self.rooms,math.random(1,#self.rooms))
+		local x = math.random(room.xmin,room.xmax)
+		local y = math.random(room.ymin,room.ymax)
+		local r = math.random(8,16)
+		self.room = room
 		self.hbox = {x-r,y-r,x+r,y+r}
 		self.x=x
 		self.y=y
@@ -80,6 +85,8 @@ function fmethods:prehide()
 end
 
 function fmethods:invalid()
+		table.insert(self.rooms,self.room)
+		self.room=nil
 		self.valid=nil
 		self.events={}
 		if not self.sleep then
@@ -164,8 +171,20 @@ local function newBonusManager(maxFruits)
 	end
 	bmgr.fruits={}
 	bmgr.scores={}
+	
+	bmgr.rooms={}
+	local n=2
+	while n*n < maxFruits do n=n+1 end
+	local w = 0.8*SW/n
+	local h = 0.8*SH/n
+	for x=0,n-1 do
+		for y=0,n-1 do
+			table.insert(bmgr.rooms,{xmin = 0.1*SW + x * w, ymin = 0.1*SH+y*h,xmax = 0.1*SW + x * w + w, ymax = 0.1*SH+y*h+h, })
+		end	
+	end
+	
 	for i=1,maxFruits do
-		local f=setmetatable({scores=bmgr.scores},{__index=fmethods})
+		local f=setmetatable({scores=bmgr.scores,rooms=bmgr.rooms},{__index=fmethods})
 		if math.random(1,4) == 1 then
 			f:invalid()
 		else
