@@ -219,7 +219,7 @@ function methods:update(dt)
 		elseif yv>SH then
 			yv = yv - SH
 		end
-		table.insert(self.visucoord,{xv,yv})
+		table.insert(self.visucoord,{math.floor(xv),math.floor(yv)})
 		self:plot(is,xv,yv,self.bodyColor)
 		-- determine if collision with head
 		if hitByHead<1 and is>4 then

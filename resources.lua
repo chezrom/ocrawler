@@ -73,7 +73,7 @@ local function getVitaminImage(radius)
 			local d2=u2+(y-yc)*(y-yc)
 			if d2 <=r2 then
 				z=math.sqrt(r2-d2)
-				local l=((xc-x)+(yc-y)+z)/math.sqrt(3)/radius
+				local l=((xc-x)+(yc-y)+z*math.sqrt(2))*0.5/radius
 				if l<0 then
 					l=0
 				end
@@ -94,7 +94,7 @@ local function getSnakeImage(radius)
 	local yc = xc
 	local r2=radius*radius
 	local hr2=r2/3
-	local lflat = 1/math.sqrt(3)
+	local lflat = math.sqrt(2)/2
 	for x=0,2*radius-1 do
 		local u2 = (x-xc)*(x-xc)
 		for y=0,2*radius-1 do
@@ -103,7 +103,7 @@ local function getSnakeImage(radius)
 				id:setPixel(x,y,64+(255-64)*lflat,64+(255-64)*lflat,64+(255-64)*lflat,255)
 			elseif d2 <=r2 then
 				z=math.sqrt(r2-d2)
-				local l=((xc-x)+(yc-y)+z)/math.sqrt(3)/radius
+				local l=((xc-x)+(yc-y)+z*math.sqrt(2))*0.5/radius
 				if l<0 then
 					l=0
 				end
