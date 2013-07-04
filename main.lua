@@ -105,6 +105,8 @@ end
 function playstate:keypressed(key)
 	if key == "p" then
 		state = pausestate
+	elseif key == "backspace" then
+		snake:circle_draw()
 	end
 end
 

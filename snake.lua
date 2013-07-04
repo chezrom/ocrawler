@@ -69,10 +69,52 @@ function methods:wakeup()
 	self.headColor=active_headColor
 end
 
-function methods:draw()
+function methods:draw_nobatch()
+	lg.setColor(self.bodyColor)
+	for _,s in ipairs(self.visucoord) do
+		lg.draw(rsc.snake[snakeradius],s[1]-snakeradius,s[2]-snakeradius)	
+	end
+	lg.setColor(self.headColor)
+	lg.draw(rsc.snake[snakeradius],self.x-snakeradius,self.y-snakeradius)	
+end
+
+function methods:draw_circle()
+	lg.setColor(self.bodyColor)
+	for _,s in ipairs(self.visucoord) do
+		lg.circle('fill',s[1],s[2],snakeradius,16)	
+	end
+	lg.setColor(self.headColor)
+	lg.circle('fill',self.x,self.y,snakeradius,16)	
+end
+
+function methods:plot(i,x,y,color)
+	self.batch:setColor(unpack(color))
+	if self.bid[i] then
+		self.batch:set(self.bid[i],x-snakeradius,y-snakeradius)
+	else
+		self.bid[i] = self.batch:add(x-snakeradius,y-snakeradius)
+	end
+end
+
+function methods:draw_batch()
+	self.batch:bind()
+	self:plot(1,self.x,self.y,self.headColor)
+	for is,s in ipairs(self.visucoord) do
+		self:plot(is+1,s[1],s[2],self.bodyColor)
+	end
+	self.batch:unbind()
 	lg.draw(self.batch,0,0)
 end
 
+function methods:circle_draw()
+	if self.draw == methods.draw_batch then
+		self.draw = methods.draw_nobatch
+	elseif self.draw == methods.draw_nobatch then
+		self.draw = methods.draw_circle
+	else
+		self.draw = methods.draw_batch
+	end
+end
 
 function methods:playerPilot(dt)
 	local newDir=nil
@@ -133,17 +175,9 @@ function methods:setAutoPilot()
 	self:computeWantedDir()
 end
 
-function methods:plot(i,x,y,color)
-	self.batch:setColor(unpack(color))
-	if self.bid[i] then
-		self.batch:set(self.bid[i],x-snakeradius,y-snakeradius)
-	else
-		self.bid[i] = self.batch:add(x-snakeradius,y-snakeradius)
-	end
-end
 
 function methods:update(dt)
-	self.batch:bind()
+	--self.batch:bind()
 	--local snakeradius = self.snakeRadius
 	--local refdist = self.refdist
 	local newDir = self:pilot(dt)
@@ -172,7 +206,7 @@ function methods:update(dt)
 	end
 	self.x=x
 	self.y=y
-	self:plot(1,x,y,self.headColor)
+	--self:plot(1,x,y,self.headColor)
 	local xv,yv=x,y
 	local xh,yh=x,y
 	
@@ -219,8 +253,8 @@ function methods:update(dt)
 		elseif yv>SH then
 			yv = yv - SH
 		end
-		table.insert(self.visucoord,{math.floor(xv),math.floor(yv)})
-		self:plot(is,xv,yv,self.bodyColor)
+		table.insert(self.visucoord,{xv,yv})
+		--self:plot(is,xv,yv,self.bodyColor)
 		-- determine if collision with head
 		if hitByHead<1 and is>4 then
 			ux = abs(xv-xh)
@@ -238,7 +272,7 @@ function methods:update(dt)
 		is = is + 1
 	end
 	self.hitByHead=hitByHead
-	self.batch:unbind()
+	--self.batch:unbind()
 end
 
 function methods:cellhitbox(icell) 
@@ -273,8 +307,6 @@ local function newSnake(x,y,len)
 	s.pilot = s.playerPilot
 	local is = 2
 	s[1]={0,0}
-	s.batch=lg.newSpriteBatch(rsc.snake[snakeradius],1000,'stream')
-	s.bid={}
 	while is <= len do
 		s[is]={-s.refdist,0}
 		is = is + 1
@@ -283,6 +315,7 @@ local function newSnake(x,y,len)
 	s.batch=lg.newSpriteBatch(rsc.snake[snakeradius],1000,'stream')
 	s.bid={}
 	
+	s.draw=s.draw_batch
 	return s
 end
 
