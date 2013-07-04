@@ -177,7 +177,6 @@ end
 
 
 function methods:update(dt)
-	--self.batch:bind()
 	--local snakeradius = self.snakeRadius
 	--local refdist = self.refdist
 	local newDir = self:pilot(dt)
@@ -206,7 +205,6 @@ function methods:update(dt)
 	end
 	self.x=x
 	self.y=y
-	--self:plot(1,x,y,self.headColor)
 	local xv,yv=x,y
 	local xh,yh=x,y
 	
@@ -254,7 +252,7 @@ function methods:update(dt)
 			yv = yv - SH
 		end
 		table.insert(self.visucoord,{xv,yv})
-		--self:plot(is,xv,yv,self.bodyColor)
+
 		-- determine if collision with head
 		if hitByHead<1 and is>4 then
 			ux = abs(xv-xh)
@@ -272,7 +270,6 @@ function methods:update(dt)
 		is = is + 1
 	end
 	self.hitByHead=hitByHead
-	--self.batch:unbind()
 end
 
 function methods:cellhitbox(icell) 
