@@ -26,6 +26,7 @@ local resources={}
 local lg=love.graphics
 
 local fontFilename= "assets/diavlo.otf"
+--local bgimageFilename="assets/bg.png"
 
 local function loadFonts()
 	--[[
@@ -78,9 +79,6 @@ local function getVitaminImage(radius)
 					l=0
 				end
 				id:setPixel(x,y,64+(255-64)*l,64+(255-64)*l,64+(255-64)*l,255)
-				--id:setPixel(x,y,255-128*d2/r2,255-128*d2/r2,255,255)
-				--id:setPixel(x,y,255-128*d2/r2,255-128*d2/r2,255,255-(128+64)*d2/r2)
-				--id:setPixel(x,y,255,255,255,255-128*math.sqrt(d2/r2))
 			end
 		end
 	end
@@ -108,9 +106,6 @@ local function getSnakeImage(radius)
 					l=0
 				end
 				id:setPixel(x,y,64+(255-64)*l,64+(255-64)*l,64+(255-64)*l,255)
-				--id:setPixel(x,y,255-128*d2/r2,255-128*d2/r2,255,255)
-				--id:setPixel(x,y,255-128*d2/r2,255-128*d2/r2,255,255-(128+64)*d2/r2)
-				--id:setPixel(x,y,255,255,255,255-128*math.sqrt(d2/r2))
 			end
 		end
 	end
