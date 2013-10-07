@@ -44,7 +44,6 @@ local beta=0.39782473
 
 local default={
 	speed=250,
-	--angspeed = math.pi, 
 	angspeed = 5/4*math.pi, 
 	bodyColor=active_bodyColor,
 	headColor=active_headColor,
@@ -69,15 +68,6 @@ function methods:wakeup()
 	self.headColor=active_headColor
 end
 
-function methods:draw_nobatch()
-	lg.setColor(self.bodyColor)
-	for _,s in ipairs(self.visucoord) do
-		lg.draw(rsc.snake[snakeradius],s[1]-snakeradius,s[2]-snakeradius)	
-	end
-	lg.setColor(self.headColor)
-	lg.draw(rsc.snake[snakeradius],self.x-snakeradius,self.y-snakeradius)	
-end
-
 function methods:draw_circle()
 	lg.setColor(self.bodyColor)
 	for _,s in ipairs(self.visucoord) do
@@ -97,19 +87,11 @@ function methods:plot(i,x,y,color)
 end
 
 function methods:draw_batch()
-	self.batch:bind()
-	self:plot(1,self.x,self.y,self.headColor)
-	for is,s in ipairs(self.visucoord) do
-		self:plot(is+1,s[1],s[2],self.bodyColor)
-	end
-	self.batch:unbind()
 	lg.draw(self.batch,0,0)
 end
 
 function methods:circle_draw()
 	if self.draw == methods.draw_batch then
-		self.draw = methods.draw_nobatch
-	elseif self.draw == methods.draw_nobatch then
 		self.draw = methods.draw_circle
 	else
 		self.draw = methods.draw_batch
@@ -208,6 +190,10 @@ function methods:update(dt)
 	local xv,yv=x,y
 	local xh,yh=x,y
 	
+	self.batch:bind()
+	self:plot(1,self.x,self.y,self.headColor)
+	
+	
 	local dmin=2*snakeradius
 	local dmin2=dmin*dmin
 	
@@ -252,6 +238,8 @@ function methods:update(dt)
 			yv = yv - SH
 		end
 		table.insert(self.visucoord,{xv,yv})
+		
+		self:plot(is,xv,yv,self.bodyColor)
 
 		-- determine if collision with head
 		if hitByHead<1 and is>4 then
@@ -269,6 +257,10 @@ function methods:update(dt)
 		self[is][2] = lasty
 		is = is + 1
 	end
+
+	self.batch:unbind()
+
+	
 	self.hitByHead=hitByHead
 end
 
