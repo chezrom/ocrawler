@@ -26,16 +26,9 @@ local resources={}
 local lg=love.graphics
 
 local fontFilename= "assets/diavlo.otf"
---local bgimageFilename="assets/bg.png"
+--local fontFilename= "assets/FiraMonoOT-Bold.otf"
 
 local function loadFonts()
-	--[[
-	resources.tinyFont=lg.newFont(16)
-	resources.font=lg.newFont(20)
-	resources.titleFont=lg.newFont(32)
-	resources.menuFont=lg.newFont(24)
-	--]]
-	--
 	resources.tinyFont=lg.newFont(fontFilename,16)
 	resources.font=lg.newFont(fontFilename,20)
 	resources.titleFont=lg.newFont(fontFilename,32)
@@ -77,6 +70,16 @@ local function getSnakeImage(radius)
 		local u2 = (x-xc)*(x-xc)
 		for y=0,2*radius-1 do
 			local d2=u2+(y-yc)*(y-yc)
+
+			if d2 <=r2 then
+				z=math.sqrt(r2-d2)
+				local l=((xc-x)+(yc-y)+z*math.sqrt(2))*0.5/radius
+				if l<0 then
+					l=0
+				end
+				id:setPixel(x,y,64+(255-64)*l,64+(255-64)*l,64+(255-64)*l,255)
+			end
+			--[[
 			if d2 <=hr2 then
 				id:setPixel(x,y,64+(255-64)*lflat,64+(255-64)*lflat,64+(255-64)*lflat,255)
 			elseif d2 <=r2 then
@@ -87,6 +90,7 @@ local function getSnakeImage(radius)
 				end
 				id:setPixel(x,y,64+(255-64)*l,64+(255-64)*l,64+(255-64)*l,255)
 			end
+			--]]
 		end
 	end
 	return lg.newImage(id)
