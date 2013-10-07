@@ -119,10 +119,10 @@ end
 function methods:playerPilot(dt)
 	local newDir=nil
 	self.waitcount = self.waitcount - dt
-	if love.keyboard.isDown("left") then
+	if love.keyboard.isDown("left","a") then
 		self.waitcount = waitkeycount
 		newDir = self.dir - self.angspeed * dt
-	elseif love.keyboard.isDown("right") then
+	elseif love.keyboard.isDown("right","d") then
 		self.waitcount = waitkeycount
 		newDir = self.dir + self.angspeed * dt
 	end
