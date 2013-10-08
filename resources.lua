@@ -64,13 +64,10 @@ local function getSnakeImage(radius)
 	local xc = (2*radius-1)/2
 	local yc = xc
 	local r2=radius*radius
-	local hr2=r2/3
-	local lflat = math.sqrt(2)/2
 	for x=0,2*radius-1 do
 		local u2 = (x-xc)*(x-xc)
 		for y=0,2*radius-1 do
 			local d2=u2+(y-yc)*(y-yc)
-
 			if d2 <=r2 then
 				z=math.sqrt(r2-d2)
 				local l=((xc-x)+(yc-y)+z*math.sqrt(2))*0.5/radius
@@ -79,18 +76,6 @@ local function getSnakeImage(radius)
 				end
 				id:setPixel(x,y,64+(255-64)*l,64+(255-64)*l,64+(255-64)*l,255)
 			end
-			--[[
-			if d2 <=hr2 then
-				id:setPixel(x,y,64+(255-64)*lflat,64+(255-64)*lflat,64+(255-64)*lflat,255)
-			elseif d2 <=r2 then
-				z=math.sqrt(r2-d2)
-				local l=((xc-x)+(yc-y)+z*math.sqrt(2))*0.5/radius
-				if l<0 then
-					l=0
-				end
-				id:setPixel(x,y,64+(255-64)*l,64+(255-64)*l,64+(255-64)*l,255)
-			end
-			--]]
 		end
 	end
 	return lg.newImage(id)
