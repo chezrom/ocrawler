@@ -36,7 +36,6 @@ local fmethods={}
 
 function fmethods:draw()
 	lg.setColor(self.color)
-	--lg.circle('fill',self.x,self.y,self.r,32)
 	lg.draw(rsc.vitamins[self.r],self.x-self.r,self.y-self.r)
 end
 
@@ -47,7 +46,6 @@ function fmethods:genEvent(hb,x,y,r)
 		if d < (r+fr)*(r+fr) then
 			-- intersect !!
 			local score = (self.mature and 100) or 50
-			--table.insert(self.scores,{x=fx,y=fy,t=string.format("%d",score),c=self.color})
 			table.insert(self.scores,{x=fx,y=fy,t=string.format("%d",score),fade=0})
 			self:invalid()
 			return {"FRUIT",score}
@@ -164,6 +162,23 @@ function methods:genEvents(x,y,r)
 	return events
 end
 
+function methods:genCollision(x,y,r)
+	local hbox={x-r,y-r,x+r,y+r}
+	for _,f in ipairs(self.fruits) do
+		if f.valid and intersect(f.hbox,hbox) then
+			local fx,fy,fr = f.x,f.y,f.r
+			local d2 = (x-fx)*(x-fx)+(y-fy)*(y-fy)
+			if d2 < (r+fr)*(r+fr) then
+				-- INTERSECT !
+				local d=math.sqrt(d2)
+				local h=(r+fr-d)/(r+fr)
+				return (x-fx)*h,(y-fy)*h
+			end
+		end
+	end
+	return nil	
+end
+
 local function newBonusManager(maxFruits)
 	local bmgr = {}
 	for k,v in pairs(methods) do
@@ -173,18 +188,28 @@ local function newBonusManager(maxFruits)
 	bmgr.scores={}
 	
 	bmgr.rooms={}
+	
 	local n=2
 	while n*n < maxFruits do n=n+1 end
 	local w = 0.8*SW/n
 	local h = 0.8*SH/n
 	for x=0,n-1 do
 		for y=0,n-1 do
-			table.insert(bmgr.rooms,{xmin = 0.1*SW + x * w, ymin = 0.1*SH+y*h,xmax = 0.1*SW + x * w + w, ymax = 0.1*SH+y*h+h, })
+			local room = {xmin = 0.1*SW + x * w, ymin = 0.1*SH+y*h,xmax = 0.1*SW + x * w + w, ymax = 0.1*SH+y*h+h, }
+			table.insert(bmgr.rooms,room)
 		end	
 	end
 	
+	bmgr.cells = {}
+	for x=1,n do
+		bmgr.cells[x]={}
+		for y=1,n do
+			bmgr.cells[x][y]={}
+		end
+	end
+	
 	for i=1,maxFruits do
-		local f=setmetatable({scores=bmgr.scores,rooms=bmgr.rooms},{__index=fmethods})
+		local f=setmetatable({scores=bmgr.scores,rooms=bmgr.rooms,cells=bmgr.cells},{__index=fmethods})
 		if math.random(1,4) == 1 then
 			f:invalid()
 		else

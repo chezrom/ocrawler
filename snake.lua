@@ -68,15 +68,6 @@ function methods:wakeup()
 	self.headColor=active_headColor
 end
 
-function methods:draw_circle()
-	lg.setColor(self.bodyColor)
-	for _,s in ipairs(self.visucoord) do
-		lg.circle('fill',s[1],s[2],snakeradius,16)	
-	end
-	lg.setColor(self.headColor)
-	lg.circle('fill',self.x,self.y,snakeradius,16)	
-end
-
 function methods:plot(i,x,y,color)
 	self.batch:setColor(unpack(color))
 	if self.bid[i] then
@@ -88,14 +79,6 @@ end
 
 function methods:draw_batch()
 	lg.draw(self.batch,0,0)
-end
-
-function methods:circle_draw()
-	if self.draw == methods.draw_batch then
-		self.draw = methods.draw_circle
-	else
-		self.draw = methods.draw_batch
-	end
 end
 
 function methods:playerPilot(dt)
@@ -162,6 +145,7 @@ function methods:update(dt)
 	--local snakeradius = self.snakeRadius
 	--local refdist = self.refdist
 	local newDir = self:pilot(dt)
+	local fcollision = self.fcollision
 	
 	if newDir then
 		self.dx = math.cos(newDir)
@@ -199,7 +183,7 @@ function methods:update(dt)
 	
 	local lastx,lasty = 0,0
 	local is=2
-	self.visucoord={}
+	--self.visucoord={}
 	local hitByHead=0
 	if self.noCheckSelfHit then
 		hitByHead=1
@@ -237,7 +221,17 @@ function methods:update(dt)
 		elseif yv>SH then
 			yv = yv - SH
 		end
-		table.insert(self.visucoord,{xv,yv})
+		--table.insert(self.visucoord,{xv,yv})
+		-- determine collision with vitamin/fruit
+		if fcollision then
+			local hx,hy = fcollision(xv,yv,snakeradius)
+			if hx then
+				xv = xv+hx
+				yv = yv+hy
+				x = x + hx
+				y= y + hy
+			end
+		end
 		
 		self:plot(is,xv,yv,self.bodyColor)
 
@@ -249,6 +243,7 @@ function methods:update(dt)
 				hitByHead=is
 			end
 		end
+		
 		
 		lastx=x
 		lasty=y

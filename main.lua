@@ -60,6 +60,8 @@ function reset()
 	score.reset()
 	bmgr=Bonus(10)
 	snake=Snake(30, math.floor(SH/2),10)
+	
+	snake.fcollision = function (x,y,r) return bmgr:genCollision(x,y,r) end
 end
 
 
@@ -105,8 +107,6 @@ end
 function playstate:keypressed(key)
 	if key == "p" then
 		state = pausestate
-	elseif key == "backspace" then
-		snake:circle_draw()
 	end
 end
 
@@ -354,6 +354,11 @@ end
 
 function love.draw()
 	state:draw(dt)
+	
+	lg.setFont(rsc.menuFont)
+	lg.setColor({255,255,255})
+	lg.print(love.timer.getFPS( ),0,SH-20)
+
 end
 --
 function love.keypressed(key,unicode)
