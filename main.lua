@@ -41,6 +41,7 @@ local hiscorestate={}
 
 
 function love.load()
+	love.keyboard.setTextInput(false)
 	SW,SH = lg.getWidth(), lg.getHeight()
 	lg.setBackgroundColor({0,64,64})
 	rsc.load()
@@ -155,6 +156,7 @@ function hiscorestate:init()
 end
 
 function hiscorestate:enter()
+	love.keyboard.setTextInput(false)
 	self.showMessage=true
 	events.clean()
 	events.addEvent(0.5,self,self.flipMessage)
@@ -269,6 +271,7 @@ function gameoverstate:enter()
 
 	self.enterName=false
 	if score.setLastScore() then
+		love.keyboard.setTextInput(true)
 		self.text = self.text .. "HIGH SCORE - PLEASE ENTER NAME"
 		self.enterName=true
 		self.name = Highscore.getPlayerName()
@@ -312,7 +315,7 @@ function gameoverstate:draw()
 	end
 end
 
-function gameoverstate:keypressed(key,unicode)
+function gameoverstate:keypressed(key)
 	if self.enterName then
 		if key == "backspace" then
 			if #self.name > 0 then
@@ -322,12 +325,18 @@ function gameoverstate:keypressed(key,unicode)
 			score.recordHighScore(self.name)
 			state=hiscorestate
 			state:enter()
-		elseif unicode > 31 and unicode < 127 then
-			local ch = string.upper(string.char(unicode))
-		    if (ch>="A" and ch<="Z" ) or (ch>="0" and ch <="9") then
-				if #self.name < 8 then
-					self.name = self.name .. ch
-				end
+		end
+	else
+		reset()
+	end
+end
+
+function gameoverstate:textinput(unicode)
+	if self.enterName then
+		local ch = string.upper(unicode)
+	    if (ch>="A" and ch<="Z" ) or (ch>="0" and ch <="9") then
+			if #self.name < 8 then
+				self.name = self.name .. ch
 			end
 		end
 	else
@@ -361,7 +370,13 @@ function love.draw()
 
 end
 --
-function love.keypressed(key,unicode)
-	state:keypressed(key,unicode)
+function love.keypressed(key)
+	state:keypressed(key)
+end
+--
+function love.textinput(unicode)
+	if state.textinput then
+		state:textinput(unicode)
+	end
 end
 --]]
