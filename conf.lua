@@ -1,5 +1,5 @@
 function love.conf(t)
-    t.title             = "Ophidian Crawler v0.05"
+    t.title             = "Ophidian Crawler v0.06"
     t.author            = "chezrom"
     t.version           = "0.9.0"
     t.identity          = "ophcrawl"
