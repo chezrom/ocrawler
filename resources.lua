@@ -24,7 +24,7 @@ distribution.
 local resources={}
 
 local lg=love.graphics
-
+local lm=love.math
 local fontFilename= "assets/diavlo.otf"
 --local fontFilename= "assets/FiraMonoOT-Bold.otf"
 
@@ -90,9 +90,28 @@ local function computeGraphics()
 	resources.snake[7]=getSnakeImage(7)
 end
 
+local function computeBackground()
+	local id = love.image.newImageData(SW,SH)
+	local c1={10,96,10}
+	local c2={86,86,30}
+	for x=0,SW-1 do
+		local xx = x/SW*15
+		for y=0,SH-1 do
+			local yy= y/SH*15
+			local u = lm.noise(xx,yy)
+			id:setPixel(x,y,c1[1] + u*(c2[1]-c1[1]),c1[2] + u*(c2[2]-c1[2]),c1[3] + u*(c2[3]-c1[3]))
+		end
+	end
+	resources.bgCanvas = lg.newCanvas(SW,SH)
+	lg.setCanvas(resources.bgCanvas)
+	lg.draw(lg.newImage(id),0,0)
+	lg.setCanvas()
+end
+
 function resources.load()
 	loadFonts()
 	computeGraphics()
+	computeBackground()
 end
 
 return resources

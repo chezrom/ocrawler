@@ -362,6 +362,7 @@ function love.update(dt)
 end
 
 function love.draw()
+	lg.draw(rsc.bgCanvas,0,0)
 	state:draw(dt)
 	
 	lg.setFont(rsc.menuFont)
