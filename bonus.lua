@@ -35,8 +35,10 @@ local vspeed=100
 local fmethods={}
 
 function fmethods:draw()
-	lg.setColor(self.color)
-	lg.draw(rsc.vitamins[self.r],self.x-self.r,self.y-self.r)
+	local percent = self.clock()/self.lifetime
+	lg.setColor(196,196 - 196 *percent,15)
+	local x,y,r=self.x,self.y,self.r
+	lg.draw(rsc.vitamins[r],x-r,y-r)
 end
 
 function fmethods:genEvent(hb,x,y,r) 
@@ -45,7 +47,8 @@ function fmethods:genEvent(hb,x,y,r)
 		local d = (x-fx)*(x-fx)+(y-fy)*(y-fy)
 		if d < (r+fr)*(r+fr) then
 			-- intersect !!
-			local score = (self.mature and 100) or 50
+			local sf = (16-self.r)/8
+			local score = math.floor((self.clock()/self.lifetime * 50 + 50) * (1+sf) )
 			table.insert(self.scores,{x=fx,y=fy,t=string.format("%d",score),fade=0})
 			self:invalid()
 			return {"FRUIT",score}
@@ -55,7 +58,6 @@ end
 
 function fmethods:show()
 	if not self.sleep then
-		self.color=fruit_color
 		
 		local room = table.remove(self.rooms,math.random(1,#self.rooms))
 		local x = math.random(room.xmin,room.xmax)
@@ -67,20 +69,12 @@ function fmethods:show()
 		self.y=y
 		self.r=r
 		self.valid=true
-		self.mature=false
-		events.addEvent(math.random(5,8),self,self.prehide)
+		self.lifetime = math.random(5,8)+2
+		events.addEvent(self.lifetime,self,self.invalid)
+		self.clock = events.clock()
 	end
 end
 
-function fmethods:prehide()
-	if self.sleep then
-		self:invalid()
-	else
-		self.color=fruit_color_prehide
-		self.mature=true
-		events.addEvent(2,self,self.invalid)
-	end
-end
 
 function fmethods:invalid()
 		table.insert(self.rooms,self.room)
@@ -193,6 +187,7 @@ local function newBonusManager(maxFruits)
 	while n*n < maxFruits do n=n+1 end
 	local w = 0.8*SW/n
 	local h = 0.8*SH/n
+	
 	for x=0,n-1 do
 		for y=0,n-1 do
 			local room = {xmin = 0.1*SW + x * w, ymin = 0.1*SH+y*h,xmax = 0.1*SW + x * w + w, ymax = 0.1*SH+y*h+h, }
@@ -210,7 +205,7 @@ local function newBonusManager(maxFruits)
 	
 	for i=1,maxFruits do
 		local f=setmetatable({scores=bmgr.scores,rooms=bmgr.rooms,cells=bmgr.cells},{__index=fmethods})
-		if math.random(1,4) == 1 then
+		if math.random(1,2) == 1 then
 			f:invalid()
 		else
 			f:show()
