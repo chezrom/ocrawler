@@ -92,13 +92,14 @@ end
 
 local function computeBackground()
 	local id = love.image.newImageData(SW,SH)
-	local c1={10,96,10}
-	local c2={86,86,30}
+	local c1={10,10,96}
+	local c2={86,96,80}
 	for x=0,SW-1 do
 		local xx = x/SW*15
 		for y=0,SH-1 do
 			local yy= y/SH*15
 			local u = lm.noise(xx,yy)
+			u=u*u
 			id:setPixel(x,y,c1[1] + u*(c2[1]-c1[1]),c1[2] + u*(c2[2]-c1[2]),c1[3] + u*(c2[3]-c1[3]))
 		end
 	end
