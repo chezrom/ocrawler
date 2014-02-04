@@ -3,9 +3,9 @@ function love.conf(t)
     t.author            = "chezrom"
     t.version           = "0.9.0"
     t.identity          = "ophcrawl"
-    t.screen.width      = 800
-    t.screen.height     = 600
-    t.screen.fullscreen = false
+    t.window.width      = 800
+    t.window.height     = 600
+    t.window.fullscreen = false
     t.console           = false
     t.modules.physics   = false
     t.modules.joystick  = false
