@@ -1,5 +1,5 @@
 --[[
-Copyright (c) 2013 Romain Meynet
+Copyright (c) 2013-2014 Romain Meynet
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages
@@ -26,6 +26,8 @@ local lg=love.graphics
 local events=require 'events'
 local rsc=require 'resources'
 
+local genPoints=require 'poisson'
+
 local fruit_color_prehide={196,100,15}
 local fruit_color={196,196,15}
 local fruit_radius=8
@@ -33,6 +35,7 @@ local fruit_radius=8
 -- vertical speed of number (pixel/s)
 local vspeed=100
 local fmethods={}
+local minDist=50
 
 function fmethods:draw()
 	local percent = self.clock()/self.lifetime
@@ -59,11 +62,11 @@ end
 function fmethods:show()
 	if not self.sleep then
 		
-		local room = table.remove(self.rooms,math.random(1,#self.rooms))
-		local x = math.random(room.xmin,room.xmax)
-		local y = math.random(room.ymin,room.ymax)
+		local point = table.remove(self.points,math.random(1,#self.points))
+		local x = point.x + minDist/2
+		local y = point.y + minDist/2
 		local r = math.random(8,16)
-		self.room = room
+		self.point = point
 		self.hbox = {x-r,y-r,x+r,y+r}
 		self.x=x
 		self.y=y
@@ -77,8 +80,8 @@ end
 
 
 function fmethods:invalid()
-		table.insert(self.rooms,self.room)
-		self.room=nil
+		table.insert(self.points,self.point)
+		self.point=nil
 		self.valid=nil
 		self.events={}
 		if not self.sleep then
@@ -181,30 +184,10 @@ local function newBonusManager(maxFruits)
 	bmgr.fruits={}
 	bmgr.scores={}
 	
-	bmgr.rooms={}
-	
-	local n=2
-	while n*n < maxFruits do n=n+1 end
-	local w = 0.8*SW/n
-	local h = 0.8*SH/n
-	
-	for x=0,n-1 do
-		for y=0,n-1 do
-			local room = {xmin = 0.1*SW + x * w, ymin = 0.1*SH+y*h,xmax = 0.1*SW + x * w + w, ymax = 0.1*SH+y*h+h, }
-			table.insert(bmgr.rooms,room)
-		end	
-	end
-	
-	bmgr.cells = {}
-	for x=1,n do
-		bmgr.cells[x]={}
-		for y=1,n do
-			bmgr.cells[x][y]={}
-		end
-	end
+	bmgr.points = genPoints(SW-minDist,SH-minDist,minDist)
 	
 	for i=1,maxFruits do
-		local f=setmetatable({scores=bmgr.scores,rooms=bmgr.rooms,cells=bmgr.cells},{__index=fmethods})
+		local f=setmetatable({scores=bmgr.scores,points=bmgr.points},{__index=fmethods})
 		if math.random(1,2) == 1 then
 			f:invalid()
 		else
