@@ -22,7 +22,12 @@ distribution.
 --]]
 
 --[[
-Generator of poisson disks
+Generator of Poisson disks
+
+Generate a distribution of point with a minimum distance between any couple of those points.
+
+The algorithm is described here : http://people.cs.ubc.ca/~rbridson/docs/bridson-siggraph07-poissondisk.pdf
+
 --]]
 
 local methods = {}
