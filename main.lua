@@ -41,6 +41,7 @@ local hiscorestate={}
 
 
 function love.load()
+	math.randomseed(os.time())
 	love.keyboard.setTextInput(false)
 	SW,SH = lg.getWidth(), lg.getHeight()
 	lg.setBackgroundColor({0,64,64})
