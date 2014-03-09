@@ -91,21 +91,50 @@ local function computeGraphics()
 end
 
 local function computeBackground()
+	local abs=math.abs
 	local id = love.image.newImageData(SW,SH)
-	local c1={10,10,96}
-	local c2={86,96,80}
+	local c2={10,10,96}
+	local c1={86,96,80}
+	local maxr=1
+	--local minr=0.8
+	local minr=0.5
+	--local yrad=maxr/minr
+	local yrad=2*maxr - minr
+	
+	local ox= 200*math.random() - 10
+	local oy= 20*math.random() - 10
+	local oz= 20*math.random() - 10
+
 	for x=0,SW-1 do
-		local xx = x/SW*15
+		local alpha = 2*x/SW*math.pi
 		for y=0,SH-1 do
-			local yy= y/SH*15
-			local u = lm.noise(xx,yy)
-			u=u*u
+			local beta = 2 *y/SH*math.pi
+			--local yy= oy+minr*math.sin(beta)
+			local yy= oy+yrad*math.sin(beta)
+			local ur = maxr - minr*math.cos(beta)
+			local xx = ox+ur*math.cos(alpha)
+			local zz = oz+ur*math.sin(alpha)
+			local u1 = lm.noise(xx,yy,zz)
+			local u2 = lm.noise(2*xx,2*yy,2*zz)
+			local u3 = lm.noise(4*xx,4*yy,4*zz)
+			--local u = 2*u1 + u2 + u3/2
+			local u = u1 + u2/2 + u3/4
+			--local u=2*u1
+			--local u = u1
+			if (u>1) then u=1 end
+			--u=u*u
 			id:setPixel(x,y,c1[1] + u*(c2[1]-c1[1]),c1[2] + u*(c2[2]-c1[2]),c1[3] + u*(c2[3]-c1[3]))
 		end
 	end
+	local sx = math.random(100,300)
+	local sy = math.random(100,300)
 	resources.bgCanvas = lg.newCanvas(SW,SH)
 	lg.setCanvas(resources.bgCanvas)
-	lg.draw(lg.newImage(id),0,0)
+	--lg.draw(lg.newImage(id),0,0)
+	lg.draw(lg.newImage(id),-sx,-sy)
+	lg.draw(lg.newImage(id),SW-sx,-sy)
+	lg.draw(lg.newImage(id),-sx,SH-sy)
+	lg.draw(lg.newImage(id),SW-sx,SH-sy)
 	lg.setCanvas()
 end
 
