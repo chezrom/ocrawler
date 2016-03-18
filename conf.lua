@@ -1,7 +1,7 @@
 function love.conf(t)
     t.title             = "Ophidian Crawler v0.07"
     t.author            = "chezrom"
-    t.version           = "0.9.0"
+    t.version           = "0.10.0"
     t.identity          = "ophcrawl"
     t.window.width      = 800
     t.window.height     = 600

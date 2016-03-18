@@ -174,7 +174,7 @@ function methods:update(dt)
 	local xv,yv=x,y
 	local xh,yh=x,y
 	
-	self.batch:bind()
+	--self.batch:bind()
 	self:plot(1,self.x,self.y,self.headColor)
 	
 	
@@ -253,7 +253,7 @@ function methods:update(dt)
 		is = is + 1
 	end
 
-	self.batch:unbind()
+	--self.batch:unbind()
 
 	
 	self.hitByHead=hitByHead
