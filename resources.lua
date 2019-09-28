@@ -51,7 +51,7 @@ local function getVitaminImage(radius)
 				if l<0 then
 					l=0
 				end
-				id:setPixel(x,y,64+(255-64)*l,64+(255-64)*l,64+(255-64)*l,255)
+				id:setPixel(x,y,(64+(255-64)*l)/255,(64+(255-64)*l)/255,(64+(255-64)*l)/255,1)
 			end
 		end
 	end
@@ -74,7 +74,7 @@ local function getSnakeImage(radius)
 				if l<0 then
 					l=0
 				end
-				id:setPixel(x,y,64+(255-64)*l,64+(255-64)*l,64+(255-64)*l,255)
+				id:setPixel(x,y,(64+(255-64)*l)/255,(64+(255-64)*l)/255,(64+(255-64)*l)/255,1)
 			end
 		end
 	end
@@ -93,8 +93,8 @@ end
 local function computeBackground()
 	local abs=math.abs
 	local id = love.image.newImageData(SW,SH)
-	local c2={10,10,96}
-	local c1={86,96,80}
+	local c2={10/256,10/256,96/256}
+	local c1={86/256,96/256,80/256}
 	local maxr=1
 	--local minr=0.8
 	local minr=0.5

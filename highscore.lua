@@ -96,7 +96,7 @@ function hs.init()
 		scores[l.name] = {lastScore=0,title=l.title,def=l,fmt=l.format}
 	end
 
-	if love.filesystem.exists(filename) then
+	if love.filesystem.getInfo(filename) then
 		local i=1
 		for line in love.filesystem.lines(filename) do
 			if string.sub(line,1,1) == "@" then

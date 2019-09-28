@@ -32,11 +32,11 @@ local waitkeycount=5
 local snakeradius = 7
 local refdist = 2*7+4
 
-local active_bodyColor={50,196,50}
-local active_headColor={255,255,128}
+local active_bodyColor={50/255,196/255,50/255}
+local active_headColor={1,1,0.5}
 
-local sleep_bodyColor={50,196,50,128}
-local sleep_headColor={255,255,128,128}
+local sleep_bodyColor={50/255,196/255,50/255,0.5}
+local sleep_headColor={1,1,0.5,0.5}
 
 -- for computing sqrt with "alpha max + beta min" method
 local alpha=0.96043387

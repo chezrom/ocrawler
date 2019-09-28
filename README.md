@@ -1,5 +1,5 @@
 Here is 'Ophidian Crawler' (version 0.07) a small snake game without right angles.
-It is powered by the löve 2D game engine (lua based), release 0.9.0
+It is powered by the löve 2D game engine (lua based), release 11.2
 
 The head of the snake is the yellow circle, and to grow you must eat 'vitamin' (the static colored circles).
 The vitamin start yellow and becomes red

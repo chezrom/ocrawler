@@ -116,8 +116,8 @@ function hiscorestate:init()
 	
 	local titreOffset = 20
 
-	self.titreBgColor = {0,0,196,128}
-	self.titreFgColor= {255,255,255}
+	self.titreBgColor = {0,0,196/255,.5}
+	self.titreFgColor= {1,1,1}
 	self.titre = "OPHIDIAN CRAWLER"
 	local titreHeight = math.floor(rsc.titleFont:getHeight()*1.5)
 	self.titreY = titreOffset + math.floor(rsc.titleFont:getHeight()*0.25)
@@ -131,8 +131,8 @@ function hiscorestate:init()
 		self.demoSnakes[i]=Snake(30, math.random(1,SH),30)
 	end
 	self.selectSnake = Snake(30, math.floor(SH/2),10)
-	self.selectSnake.bodyColor={196,196,196}
-	self.selectSnake.headColor={196,20,20}
+	self.selectSnake.bodyColor={196/255,196/255,196/255}
+	self.selectSnake.headColor={196/255,20/255,20/255}
 	
 	local ns = Highscore.getNbScores()
 	self.scoreY={}
@@ -150,8 +150,8 @@ function hiscorestate:init()
 	self.scoreX[2] = self.scoreX[1] + rsc.menuFont:getWidth("99. ")
 	self.scoreX[3] = self.scoreX[1] + rsc.menuFont:getWidth("99. MMMMMMMMMM ")
 	self.scoreLastW = self.scoreX[1]+self.scoreW-self.scoreX[3]
-	self.scoreColor = {255,255,255}
-	self.scoreSelectColor = {255,255,0}
+	self.scoreColor = {1,1,1}
+	self.scoreSelectColor = {1,1,0}
 
 	
 end
@@ -237,7 +237,7 @@ function hiscorestate:draw()
 	lg.printf(self.titre,0,self.titreY,SW,"center")
 
 	if self.showMessage then
-		lg.setColor({255,255,255})
+		lg.setColor({1,1,1})
 		lg.setFont(rsc.font)
 		lg.printf(self.message,0,self.messageY,SW,"center")
 	end
@@ -300,15 +300,15 @@ end
 
 function gameoverstate:draw()
 	playstate:draw()
-	lg.setColor({255,255,255})
+	lg.setColor({1,1,1})
 	lg.setFont(rsc.titleFont)
 	lg.printf(self.text,0,100,SW,"center")
 	if self.enterName then
-		lg.setColor({0,0,196,128})
+		lg.setColor({0,0,196/255,0.5})
 		local fh = rsc.titleFont:getHeight()
 		local fw = rsc.titleFont:getWidth(self.name.."_")+30
 		lg.rectangle('fill',(SW-fw)/2,self.y-fh*0.25,fw,fh*1.5)
-		lg.setColor({255,0,0})
+		lg.setColor({1,0,0})
 		lg.printf(self.name.."_",0,self.y,SW,"center")
 	elseif self.showMessage then
 		lg.setFont(rsc.font)
@@ -367,7 +367,7 @@ function love.draw()
 	state:draw(dt)
 	
 	lg.setFont(rsc.menuFont)
-	lg.setColor({255,255,255})
+	lg.setColor({1,1,1})
 	lg.print(love.timer.getFPS( ),0,SH-20)
 
 end

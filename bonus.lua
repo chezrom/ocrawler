@@ -28,8 +28,8 @@ local rsc=require 'resources'
 
 local genPoints=require 'poisson'
 
-local fruit_color_prehide={196,100,15}
-local fruit_color={196,196,15}
+local fruit_color_prehide={196/255,100/255,15/255}
+local fruit_color={196/255,196/255,15/255}
 local fruit_radius=8
 
 -- vertical speed of number (pixel/s)
@@ -39,7 +39,7 @@ local minDist=50
 
 function fmethods:draw()
 	local percent = self.clock()/self.lifetime
-	lg.setColor(196,196 - 196 *percent,15)
+	lg.setColor(196/255,(196 - 196 *percent)/255,15/255)
 	local x,y,r=self.x,self.y,self.r
 	lg.draw(rsc.vitamins[r],x-r,y-r)
 end
@@ -118,7 +118,7 @@ function methods:draw()
 	end
 	lg.setFont(rsc.tinyFont)
 	for _,s in ipairs(self.scores) do
-		lg.setColor({255,255,255,255-s.fade})
+		lg.setColor({1,1,1,1-s.fade/255})
 		lg.print(s.t,s.x,s.y)
 	end	
 end
